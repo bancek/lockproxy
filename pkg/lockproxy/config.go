@@ -33,6 +33,14 @@ type Config struct {
 	// (LOCKPROXY_PROXYREQUESTABORTTIMEOUT)
 	ProxyRequestAbortTimeout time.Duration `default:"10s"`
 
+	// ProxyGrpcMaxCallRecvMsgSize is the maximum message size in bytes the proxy can receive.
+	// (LOCKPROXY_PROXYGRPCMAXCALLRECVMSGSIZE)
+	ProxyGrpcMaxCallRecvMsgSize int `default:"4194304"`
+
+	// ProxyGrpcMaxCallSendMsgSize is the maximum message size in bytes the proxy can send.
+	// (LOCKPROXY_PROXYGRPCMAXCALLSENDMSGSIZE)
+	ProxyGrpcMaxCallSendMsgSize int `default:"4194304"`
+
 	// HealthListenAddr is the address of the gRPC Health server. It should
 	// only be used internally. Health probes should be directed to ListenAddr.
 	// (LOCKPROXY_HEALTHLISTENADDR)

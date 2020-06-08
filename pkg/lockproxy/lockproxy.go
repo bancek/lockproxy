@@ -104,6 +104,8 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		p.upstreamAddrProvider,
 		p.config.HealthListenAddr,
 		grpcDialTransportSecurity,
+		p.config.ProxyGrpcMaxCallRecvMsgSize,
+		p.config.ProxyGrpcMaxCallSendMsgSize,
 		p.config.ProxyRequestAbortTimeout,
 		p.logger,
 	)

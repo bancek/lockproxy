@@ -26,6 +26,8 @@ type ProxyDirector struct {
 	upstreamAddrProvider      UpstreamAddrProvider
 	healthAddr                string
 	grpcDialTransportSecurity grpc.DialOption
+	grpcMaxCallRecvMsgSize    int
+	grpcMaxCallSendMsgSize    int
 	abortTimeout              time.Duration
 	logger                    *logrus.Entry
 }
@@ -35,6 +37,8 @@ func NewProxyDirector(
 	upstreamAddrProvider UpstreamAddrProvider,
 	healthAddr string,
 	grpcDialTransportSecurity grpc.DialOption,
+	grpcMaxCallRecvMsgSize int,
+	grpcMaxCallSendMsgSize int,
 	abortTimeout time.Duration,
 	logger *logrus.Entry,
 ) *ProxyDirector {
@@ -43,6 +47,8 @@ func NewProxyDirector(
 		upstreamAddrProvider:      upstreamAddrProvider,
 		healthAddr:                healthAddr,
 		grpcDialTransportSecurity: grpcDialTransportSecurity,
+		grpcMaxCallRecvMsgSize:    grpcMaxCallRecvMsgSize,
+		grpcMaxCallSendMsgSize:    grpcMaxCallSendMsgSize,
 		abortTimeout:              abortTimeout,
 		logger:                    logger,
 	}
@@ -81,7 +87,11 @@ func (d *ProxyDirector) Director(ctx context.Context, fullMethodName string) (co
 	clientConn, err := grpc.DialContext(
 		outCtx,
 		addr,
-		grpc.WithDefaultCallOptions(grpc.CustomCodecCallOption{Codec: proxy.Codec()}),
+		grpc.WithDefaultCallOptions(
+			grpc.CustomCodecCallOption{Codec: proxy.Codec()},
+			grpc.MaxCallRecvMsgSize(d.grpcMaxCallRecvMsgSize),
+			grpc.MaxCallSendMsgSize(d.grpcMaxCallSendMsgSize),
+		),
 		d.grpcDialTransportSecurity,
 	)
 	if err != nil {

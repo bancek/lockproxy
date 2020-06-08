@@ -5,7 +5,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func NewHealthServer(healthService *HealthService) *grpc.Server {
+func NewHealthServer(healthService grpc_health_v1.HealthServer) *grpc.Server {
 	server := grpc.NewServer()
 
 	grpc_health_v1.RegisterHealthServer(server, healthService)

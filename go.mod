@@ -16,6 +16,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/objx v0.1.1 // indirect
+	github.com/stretchr/testify v1.6.1
 	go.etcd.io/etcd v0.0.0-20200520232829-54ba9589114f
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
