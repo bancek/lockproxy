@@ -14,7 +14,12 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Test coverage files
 *.coverprofile
 *.coverprofile.html
 
+# Lockproxy binary
+/lockproxy
+
+# etcd data dir
 /default.etcd

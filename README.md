@@ -51,7 +51,7 @@ go test ./...
 ### Coverage
 
 ```sh
-ginkgo --cover ./lockproxy && go tool cover -html=./lockproxy/lockproxy.coverprofile -o ./lockproxy/lockproxy.coverprofile.html
+go test --coverprofile lockproxy.coverprofile ./pkg/lockproxy && go tool cover -html=lockproxy.coverprofile -o lockproxy.coverprofile.html
 ```
 
 ## Debug

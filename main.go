@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bancek/lockproxy/lockproxy"
+	"github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 )
