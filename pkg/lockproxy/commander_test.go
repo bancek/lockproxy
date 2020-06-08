@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/bancek/lockproxy/lockproxy"
+	. "github.com/bancek/lockproxy/pkg/lockproxy"
 )
 
 var _ = Describe("Commander", func() {

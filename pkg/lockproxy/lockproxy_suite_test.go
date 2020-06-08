@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/clientv3"
 
-	. "github.com/bancek/lockproxy/lockproxy"
+	. "github.com/bancek/lockproxy/pkg/lockproxy"
 )
 
 var TestCtx context.Context

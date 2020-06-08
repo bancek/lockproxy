@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/examples/helloworld/helloworld"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
-	. "github.com/bancek/lockproxy/lockproxy"
+	. "github.com/bancek/lockproxy/pkg/lockproxy"
 )
 
 var _ = Describe("LockProxy", func() {

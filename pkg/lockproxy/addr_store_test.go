@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"golang.org/x/sync/errgroup"
 
-	. "github.com/bancek/lockproxy/lockproxy"
+	. "github.com/bancek/lockproxy/pkg/lockproxy"
 )
 
 var _ = Describe("AddrStore", func() {
