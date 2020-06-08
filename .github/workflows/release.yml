@@ -14,6 +14,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: "386"
         GOOS: linux
+        CGO_ENABLED: "0"
         CMD_PATH: "main.go"
         EXTRA_FILES: "LICENSE"
   release-linux-amd64:
@@ -27,6 +28,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
         GOOS: linux
+        CGO_ENABLED: "0"
         CMD_PATH: "main.go"
         EXTRA_FILES: "LICENSE"
   release-linux-arm:
@@ -40,6 +42,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: "arm"
         GOOS: linux
+        CGO_ENABLED: "0"
         CMD_PATH: "main.go"
         EXTRA_FILES: "LICENSE"
   release-linux-arm64:
@@ -53,6 +56,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: arm64
         GOOS: linux
+        CGO_ENABLED: "0"
         CMD_PATH: "main.go"
         EXTRA_FILES: "LICENSE"
   release-darwin-amd64:
@@ -66,6 +70,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
         GOOS: darwin
+        CGO_ENABLED: "0"
         CMD_PATH: "main.go"
         EXTRA_FILES: "LICENSE"
   release-windows-386:
@@ -79,6 +84,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: "386"
         GOOS: windows
+        CGO_ENABLED: "0"
         CMD_PATH: "main.go"
         EXTRA_FILES: "LICENSE"
   release-windows-amd64:
@@ -92,5 +98,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
         GOOS: windows
+        CGO_ENABLED: "0"
         CMD_PATH: "main.go"
         EXTRA_FILES: "LICENSE"
