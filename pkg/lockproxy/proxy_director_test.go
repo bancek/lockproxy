@@ -25,7 +25,9 @@ var _ = Describe("ProxyDirector", func() {
 			Status: grpc_health_v1.HealthCheckResponse_SERVING,
 		}, nil)
 		healthServer := NewHealthServer(healthService)
-		go healthServer.Serve(healthListener)
+		go func() {
+			_ = healthServer.Serve(healthListener)
+		}()
 
 		return healthAddr, healthService, func() {
 			healthServer.Stop()
@@ -58,7 +60,9 @@ var _ = Describe("ProxyDirector", func() {
 			Logger,
 		)
 		proxyServer := NewProxyServer(proxyDirector)
-		go proxyServer.Serve(proxyListener)
+		go func() {
+			_ = proxyServer.Serve(proxyListener)
+		}()
 
 		conn, err := grpc.DialContext(TestCtx, proxyAddr, grpc.WithInsecure())
 		Expect(err).NotTo(HaveOccurred())
