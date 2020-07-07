@@ -11,6 +11,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/koofr/go-ttl-cache v0.0.0-20190517172119-42f05463ecd2
 	github.com/mwitkow/grpc-proxy v0.0.0-20181017164139-0f1106ef9c76
 	github.com/onsi/ginkgo v1.12.3
 	github.com/onsi/gomega v1.10.1

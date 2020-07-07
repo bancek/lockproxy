@@ -46,7 +46,7 @@ type Config struct {
 	// (LOCKPROXY_HEALTHLISTENADDR)
 	HealthListenAddr string `default:"localhost:4082"`
 
-	// DebugListenAddr is the address of the HTTP debug (pprof) serve.r
+	// DebugListenAddr is the address of the HTTP debug (pprof) server
 	// (LOCKPROXY_DEBUGLISTENADDR).
 	DebugListenAddr string `default:"localhost:4083"`
 

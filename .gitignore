@@ -23,3 +23,7 @@
 
 # etcd data dir
 /default.etcd
+
+# Binaries
+/main
+/dummycmd

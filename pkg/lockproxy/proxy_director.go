@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	ttlcache "github.com/koofr/go-ttl-cache"
 	"github.com/mwitkow/grpc-proxy/proxy"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -30,6 +31,8 @@ type ProxyDirector struct {
 	grpcMaxCallSendMsgSize    int
 	abortTimeout              time.Duration
 	logger                    *logrus.Entry
+
+	clientsCache *ttlcache.TtlCache
 }
 
 func NewProxyDirector(
@@ -42,6 +45,8 @@ func NewProxyDirector(
 	abortTimeout time.Duration,
 	logger *logrus.Entry,
 ) *ProxyDirector {
+	clientsCache := ttlcache.NewTtlCache(1 * time.Minute)
+
 	return &ProxyDirector{
 		ctx:                       ctx,
 		upstreamAddrProvider:      upstreamAddrProvider,
@@ -51,7 +56,39 @@ func NewProxyDirector(
 		grpcMaxCallSendMsgSize:    grpcMaxCallSendMsgSize,
 		abortTimeout:              abortTimeout,
 		logger:                    logger,
+
+		clientsCache: clientsCache,
 	}
+}
+
+func (d *ProxyDirector) buildClient(addr string) (*grpc.ClientConn, error) {
+	d.logger.WithField("addr", addr).Debug("ProxyDirector building client")
+
+	clientConn, err := grpc.DialContext(
+		d.ctx,
+		addr,
+		grpc.WithDefaultCallOptions(
+			grpc.CustomCodecCallOption{Codec: proxy.Codec()},
+			grpc.MaxCallRecvMsgSize(d.grpcMaxCallRecvMsgSize),
+			grpc.MaxCallSendMsgSize(d.grpcMaxCallSendMsgSize),
+		),
+		d.grpcDialTransportSecurity,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientConn, nil
+}
+
+func (d *ProxyDirector) getClient(addr string) (*grpc.ClientConn, error) {
+	res, err := d.clientsCache.GetOrElseUpdate(addr, ttlcache.NeverExpires, func() (interface{}, error) {
+		return d.buildClient(addr)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.(*grpc.ClientConn), nil
 }
 
 func (d *ProxyDirector) isHealth(fullMethodName string) bool {
@@ -84,22 +121,13 @@ func (d *ProxyDirector) Director(ctx context.Context, fullMethodName string) (co
 
 	d.logger.WithField("addr", addr).Debug("ProxyDirector proxy request")
 
-	clientConn, err := grpc.DialContext(
-		outCtx,
-		addr,
-		grpc.WithDefaultCallOptions(
-			grpc.CustomCodecCallOption{Codec: proxy.Codec()},
-			grpc.MaxCallRecvMsgSize(d.grpcMaxCallRecvMsgSize),
-			grpc.MaxCallSendMsgSize(d.grpcMaxCallSendMsgSize),
-		),
-		d.grpcDialTransportSecurity,
-	)
+	clientConn, err := d.getClient(addr)
 	if err != nil {
 		d.logger.WithFields(logrus.Fields{
 			"addr":          addr,
 			logrus.ErrorKey: err,
 		}).Warn("ProxyDirector proxy dial error")
-		return outCtx, nil, err
+		return outCtx, nil, nil
 	}
 
 	return outCtx, clientConn, nil
