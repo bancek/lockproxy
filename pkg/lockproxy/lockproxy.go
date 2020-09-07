@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/clientv3"
@@ -29,7 +30,7 @@ type LockProxy struct {
 	addrStore      *AddrStore
 	proxyDirector  *ProxyDirector
 	commander      *Commander
-	locker         *Locker
+	locker         Locker
 	debugServer    *http.Server
 	healthService  *HealthService
 	healthServer   *grpc.Server
@@ -112,7 +113,7 @@ func (p *LockProxy) Init(ctx context.Context) error {
 
 	p.commander = NewCommander(p.config.Cmd, p.config.CmdShutdownTimeout, p.logger)
 
-	p.locker = NewLocker(
+	p.locker = etcdadapter.NewLocker(
 		p.etcdClient,
 		p.config.EtcdLockKey,
 		p.config.EtcdLockTTL,
