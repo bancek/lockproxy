@@ -36,6 +36,18 @@ func main() {
 	}
 	baseLogger.SetLevel(logLevel)
 
+	if len(os.Args) > 1 {
+		if len(config.Cmd) > 0 {
+			logger.WithError(err).Fatal("Cannot specify both LOCKPROXY_CMD and process arguments")
+		}
+
+		config.Cmd = os.Args[1:]
+
+		if config.Cmd[0] == "--" {
+			config.Cmd = config.Cmd[1:]
+		}
+	}
+
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
