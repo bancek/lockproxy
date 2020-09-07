@@ -9,13 +9,14 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	. "github.com/bancek/lockproxy/pkg/lockproxy"
+	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter/etcdtest"
 )
 
 var _ = Describe("AddrStore", func() {
 	var addrKey string
 
 	buildStore := func() *AddrStore {
-		s := NewAddrStore(EtcdClient, addrKey, Logger)
+		s := NewAddrStore(etcdtest.EtcdClient, addrKey, Logger)
 		Expect(s.Init(TestCtx)).To(Succeed())
 		return s
 	}
@@ -31,7 +32,7 @@ var _ = Describe("AddrStore", func() {
 		})
 
 		It("should initialize the store with an address", func() {
-			s := NewAddrStore(EtcdClient, addrKey, Logger)
+			s := NewAddrStore(etcdtest.EtcdClient, addrKey, Logger)
 
 			addr := Rand()
 			Expect(s.SetAddr(TestCtx, addr)).To(Succeed())
@@ -42,8 +43,8 @@ var _ = Describe("AddrStore", func() {
 		})
 
 		It("should fail if etcd client proxy is closed", func() {
-			s := NewAddrStore(EtcdClient, addrKey, Logger)
-			EtcdProxy.Close()
+			s := NewAddrStore(etcdtest.EtcdClient, addrKey, Logger)
+			_ = etcdtest.EtcdProxy.Close()
 
 			ctx, cancel := context.WithTimeout(TestCtx, 300*time.Millisecond)
 			defer cancel()
