@@ -158,6 +158,16 @@ func (p *LockProxy) Spawn(f func(context.Context) error) {
 }
 
 func (p *LockProxy) Start() error {
+	p.Spawn(func(ctx context.Context) error {
+		p.logger.WithField("listenAddr", p.config.DebugListenAddr).Info("Starting debug HTTP server")
+
+		err := p.debugServer.Serve(p.debugListener)
+		if ctx.Err() == nil {
+			return err
+		}
+		return nil
+	})
+
 	watchCreated := make(chan struct{}, 1)
 
 	p.logger.Info("LockProxy starting watch")
@@ -189,16 +199,6 @@ func (p *LockProxy) Start() error {
 	}
 
 	p.logger.Info("LockProxy store initialized")
-
-	p.Spawn(func(ctx context.Context) error {
-		p.logger.WithField("listenAddr", p.config.DebugListenAddr).Info("Starting debug HTTP server")
-
-		err := p.debugServer.Serve(p.debugListener)
-		if ctx.Err() == nil {
-			return err
-		}
-		return nil
-	})
 
 	p.Spawn(func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.HealthListenAddr).Info("Starting health gRPC server")
