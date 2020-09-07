@@ -12,3 +12,7 @@ type AddrStore interface {
 	SetAddr(ctx context.Context, addr string) error
 	Watch(ctx context.Context, onCreated func()) error
 }
+
+type Pinger interface {
+	Start(ctx context.Context) error
+}

@@ -28,7 +28,7 @@ type LockProxy struct {
 	healthListener net.Listener
 	proxyListener  net.Listener
 	etcdClient     *clientv3.Client
-	pinger         *Pinger
+	pinger         Pinger
 	addrStore      AddrStore
 	proxyDirector  *ProxyDirector
 	commander      *Commander
@@ -91,7 +91,7 @@ func (p *LockProxy) Init(ctx context.Context) error {
 
 	p.logger.Info("LockProxy etcd connected")
 
-	p.pinger = NewPinger(
+	p.pinger = etcdadapter.NewPinger(
 		p.etcdClient,
 		p.config.EtcdAddrKey,
 		p.config.EtcdPingTimeout,
