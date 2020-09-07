@@ -1,4 +1,4 @@
-package lockproxy
+package config
 
 import (
 	"time"

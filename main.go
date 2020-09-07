@@ -6,9 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
+
+	"github.com/bancek/lockproxy/pkg/lockproxy"
+	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 )
 
 func main() {
@@ -23,28 +25,28 @@ func main() {
 		"service": "lockproxy",
 	})
 
-	config := lockproxy.Config{}
+	cfg := &config.Config{}
 
-	err := envconfig.Process("lockproxy", &config)
+	err := envconfig.Process("lockproxy", cfg)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	logLevel, err := logrus.ParseLevel(config.LogLevel)
+	logLevel, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	baseLogger.SetLevel(logLevel)
 
 	if len(os.Args) > 1 {
-		if len(config.Cmd) > 0 {
+		if len(cfg.Cmd) > 0 {
 			logger.WithError(err).Fatal("Cannot specify both LOCKPROXY_CMD and process arguments")
 		}
 
-		config.Cmd = os.Args[1:]
+		cfg.Cmd = os.Args[1:]
 
-		if config.Cmd[0] == "--" {
-			config.Cmd = config.Cmd[1:]
+		if cfg.Cmd[0] == "--" {
+			cfg.Cmd = cfg.Cmd[1:]
 		}
 	}
 
@@ -64,7 +66,7 @@ func main() {
 		}
 	}()
 
-	proxy := lockproxy.NewLockProxy(&config, logger)
+	proxy := lockproxy.NewLockProxy(cfg, logger)
 
 	err = proxy.Init(ctx)
 	if err != nil {

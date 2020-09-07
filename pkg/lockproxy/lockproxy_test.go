@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 
 	. "github.com/bancek/lockproxy/pkg/lockproxy"
+	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 )
 
 var _ = Describe("LockProxy", func() {
@@ -31,7 +32,7 @@ var _ = Describe("LockProxy", func() {
 		cmd.Stderr = GinkgoWriter
 		Expect(cmd.Run()).To(Succeed())
 
-		config := Config{}
+		cfg := &config.Config{}
 
 		prefix := strings.ToUpper("LOCKPROXYTEST" + Rand())
 
@@ -39,10 +40,10 @@ var _ = Describe("LockProxy", func() {
 		os.Setenv(prefix+"_ETCDADDRKEY", "/addrkey"+Rand())
 		os.Setenv(prefix+"_CMD", dummyCmdPath+" -addr 127.0.0.1:4080")
 
-		err = envconfig.Process(prefix, &config)
+		err = envconfig.Process(prefix, cfg)
 		Expect(err).NotTo(HaveOccurred())
 
-		proxy := NewLockProxy(&config, Logger)
+		proxy := NewLockProxy(cfg, Logger)
 
 		startErr := make(chan error, 1)
 

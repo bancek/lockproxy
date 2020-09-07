@@ -13,6 +13,7 @@ import (
 	"go.etcd.io/etcd/clientv3"
 
 	. "github.com/bancek/lockproxy/pkg/lockproxy"
+	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 )
 
 var TestCtx context.Context
@@ -45,7 +46,7 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(EtcdProxy.Start()).To(Succeed())
 
-	EtcdClient, err = NewEtcdClient(TestCtx, &Config{
+	EtcdClient, err = NewEtcdClient(TestCtx, &config.Config{
 		EtcdEndpoints:            []string{EtcdProxy.ListenAddr()},
 		EtcdDialTimeout:          10 * time.Second,
 		EtcdDialKeepAliveTime:    2 * time.Second,

@@ -5,9 +5,11 @@ import (
 
 	"go.etcd.io/etcd/clientv3"
 	"google.golang.org/grpc"
+
+	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 )
 
-func NewEtcdClient(ctx context.Context, config *Config) (*clientv3.Client, error) {
+func NewEtcdClient(ctx context.Context, config *config.Config) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
 		Endpoints:            config.EtcdEndpoints,
 		DialTimeout:          config.EtcdDialTimeout,

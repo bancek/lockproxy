@@ -6,17 +6,19 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/clientv3"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
+
+	"github.com/bancek/lockproxy/pkg/lockproxy/config"
+	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 )
 
 type LockProxy struct {
-	config *Config
+	config *config.Config
 	logger *logrus.Entry
 
 	ctx            context.Context
@@ -38,7 +40,7 @@ type LockProxy struct {
 }
 
 func NewLockProxy(
-	config *Config,
+	config *config.Config,
 	logger *logrus.Entry,
 ) *LockProxy {
 	return &LockProxy{
