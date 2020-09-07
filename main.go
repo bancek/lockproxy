@@ -56,12 +56,13 @@ func main() {
 
 	err = proxy.Init(ctx)
 	if err != nil {
-		os.Exit(1)
+		logger.WithError(err).Fatal("Failed to init lock proxy")
 	}
 	defer proxy.Close()
 
 	err = proxy.Start()
 	if err != nil {
+		logger.WithError(err).Warn("Lock proxy shutdown")
 		os.Exit(2)
 	}
 }
