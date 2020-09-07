@@ -1,12 +1,11 @@
-package lockproxy
+package etcdadapter
 
 import (
 	"context"
 
+	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 	"go.etcd.io/etcd/clientv3"
 	"google.golang.org/grpc"
-
-	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 )
 
 func NewEtcdClient(ctx context.Context, config *config.Config) (*clientv3.Client, error) {

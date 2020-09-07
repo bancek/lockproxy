@@ -84,7 +84,7 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		"endpoints": strings.Join(p.config.EtcdEndpoints, ","),
 	}).Info("LockProxy connecting to etcd")
 
-	p.etcdClient, err = NewEtcdClient(ctx, p.config)
+	p.etcdClient, err = etcdadapter.NewEtcdClient(ctx, p.config)
 	if err != nil {
 		return xerrors.Errorf("failed to connect to etcd: %w", err)
 	}
