@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter/etcdtest"
+	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
 
 var TestCtx context.Context
@@ -34,7 +35,7 @@ var _ = BeforeEach(func() {
 
 	etcdtest.EtcdBeforeEach(TestCtx)
 
-	Logger = NewLoggerEntry()
+	Logger = testhelpers.NewLoggerEntry()
 })
 
 var _ = AfterEach(func() {

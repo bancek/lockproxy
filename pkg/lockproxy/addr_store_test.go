@@ -10,6 +10,7 @@ import (
 
 	. "github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter/etcdtest"
+	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
 
 var _ = Describe("AddrStore", func() {
@@ -22,7 +23,7 @@ var _ = Describe("AddrStore", func() {
 	}
 
 	BeforeEach(func() {
-		addrKey = "/" + Rand()
+		addrKey = "/" + testhelpers.Rand()
 	})
 
 	Describe("Init", func() {
@@ -34,7 +35,7 @@ var _ = Describe("AddrStore", func() {
 		It("should initialize the store with an address", func() {
 			s := NewAddrStore(etcdtest.EtcdClient, addrKey, Logger)
 
-			addr := Rand()
+			addr := testhelpers.Rand()
 			Expect(s.SetAddr(TestCtx, addr)).To(Succeed())
 
 			Expect(s.Init(TestCtx)).To(Succeed())
@@ -78,7 +79,7 @@ var _ = Describe("AddrStore", func() {
 			Eventually(watch1Created).Should(Receive())
 			Eventually(watch2Created).Should(Receive())
 
-			addr := Rand()
+			addr := testhelpers.Rand()
 
 			Expect(s2.SetAddr(TestCtx, addr)).To(Succeed())
 

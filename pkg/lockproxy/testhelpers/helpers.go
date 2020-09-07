@@ -1,4 +1,4 @@
-package lockproxy_test
+package testhelpers
 
 import (
 	"time"

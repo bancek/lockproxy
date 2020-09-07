@@ -18,6 +18,7 @@ import (
 
 	. "github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/bancek/lockproxy/pkg/lockproxy/config"
+	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
 
 var _ = Describe("LockProxy", func() {
@@ -34,10 +35,10 @@ var _ = Describe("LockProxy", func() {
 
 		cfg := &config.Config{}
 
-		prefix := strings.ToUpper("LOCKPROXYTEST" + Rand())
+		prefix := strings.ToUpper("LOCKPROXYTEST" + testhelpers.Rand())
 
-		os.Setenv(prefix+"_ETCDLOCKKEY", "/lockkey"+Rand())
-		os.Setenv(prefix+"_ETCDADDRKEY", "/addrkey"+Rand())
+		os.Setenv(prefix+"_ETCDLOCKKEY", "/lockkey"+testhelpers.Rand())
+		os.Setenv(prefix+"_ETCDADDRKEY", "/addrkey"+testhelpers.Rand())
 		os.Setenv(prefix+"_CMD", dummyCmdPath+" -addr 127.0.0.1:4080")
 
 		err = envconfig.Process(prefix, cfg)
@@ -68,7 +69,7 @@ var _ = Describe("LockProxy", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.Status).To(Equal(grpc_health_v1.HealthCheckResponse_SERVING))
 
-			name := Rand()
+			name := testhelpers.Rand()
 
 			greeterClient := helloworld.NewGreeterClient(conn)
 
