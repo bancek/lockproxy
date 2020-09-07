@@ -1,4 +1,4 @@
-package lockproxy
+package etcdadapter
 
 import (
 	"context"

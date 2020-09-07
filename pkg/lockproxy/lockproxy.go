@@ -29,7 +29,7 @@ type LockProxy struct {
 	proxyListener  net.Listener
 	etcdClient     *clientv3.Client
 	pinger         *Pinger
-	addrStore      *AddrStore
+	addrStore      AddrStore
 	proxyDirector  *ProxyDirector
 	commander      *Commander
 	locker         Locker
@@ -100,7 +100,7 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		p.logger,
 	)
 
-	p.addrStore = NewAddrStore(p.etcdClient, p.config.EtcdAddrKey, p.logger)
+	p.addrStore = etcdadapter.NewAddrStore(p.etcdClient, p.config.EtcdAddrKey, p.logger)
 
 	p.proxyDirector = NewProxyDirector(
 		ctx,

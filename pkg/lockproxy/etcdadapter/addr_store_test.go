@@ -1,4 +1,4 @@
-package lockproxy_test
+package etcdadapter_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"golang.org/x/sync/errgroup"
 
-	. "github.com/bancek/lockproxy/pkg/lockproxy"
+	. "github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter/etcdtest"
 	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
