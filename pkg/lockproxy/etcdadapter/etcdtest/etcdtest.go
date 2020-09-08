@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 	"go.etcd.io/etcd/clientv3"
 
-	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 	"github.com/bancek/tcpproxy"
 )
@@ -34,7 +33,7 @@ func EtcdBeforeEach(ctx context.Context) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(EtcdProxy.Start()).To(Succeed())
 
-	EtcdClient, err = etcdadapter.NewEtcdClient(ctx, &config.Config{
+	EtcdClient, err = etcdadapter.NewEtcdClient(ctx, &etcdadapter.EtcdConfig{
 		EtcdEndpoints:            []string{EtcdProxy.ListenAddr()},
 		EtcdDialTimeout:          10 * time.Second,
 		EtcdDialKeepAliveTime:    2 * time.Second,

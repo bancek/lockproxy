@@ -9,17 +9,16 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/bancek/lockproxy/pkg/lockproxy"
-	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 )
 
 type EtcdAdapter struct {
-	config *config.Config
+	config *EtcdConfig
 	logger *logrus.Entry
 
 	etcdClient *clientv3.Client
 }
 
-func NewEtcdAdapter(config *config.Config, logger *logrus.Entry) *EtcdAdapter {
+func NewEtcdAdapter(config *EtcdConfig, logger *logrus.Entry) *EtcdAdapter {
 	return &EtcdAdapter{
 		config: config,
 		logger: logger,

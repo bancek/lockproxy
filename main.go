@@ -30,12 +30,12 @@ func main() {
 
 	err := envconfig.Process("lockproxy", cfg)
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithError(err).Fatal("Failed to load config from env")
 	}
 
 	logLevel, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithError(err).Fatal("Failed to parse log level")
 	}
 	baseLogger.SetLevel(logLevel)
 
@@ -49,6 +49,21 @@ func main() {
 		if cfg.Cmd[0] == "--" {
 			cfg.Cmd = cfg.Cmd[1:]
 		}
+	}
+
+	var adapter lockproxy.Adapter
+
+	if cfg.Adapter == "etcd" {
+		etcdCfg := &etcdadapter.EtcdConfig{}
+
+		err := envconfig.Process("lockproxy", etcdCfg)
+		if err != nil {
+			logger.WithError(err).Fatal("Failed to load etcd config from env")
+		}
+
+		adapter = etcdadapter.NewEtcdAdapter(etcdCfg, logger)
+	} else {
+		logger.WithField("adapter", cfg.Adapter).Fatal("Invalid adapter")
 	}
 
 	ctx := context.Background()
@@ -66,8 +81,6 @@ func main() {
 		case <-ctx.Done():
 		}
 	}()
-
-	adapter := etcdadapter.NewEtcdAdapter(cfg, logger)
 
 	proxy := lockproxy.NewLockProxy(cfg, adapter, logger)
 

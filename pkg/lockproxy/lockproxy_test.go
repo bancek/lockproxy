@@ -45,7 +45,12 @@ var _ = Describe("LockProxy", func() {
 		err = envconfig.Process(prefix, cfg)
 		Expect(err).NotTo(HaveOccurred())
 
-		adapter := etcdadapter.NewEtcdAdapter(cfg, Logger)
+		etcdCfg := &etcdadapter.EtcdConfig{}
+
+		err = envconfig.Process(prefix, etcdCfg)
+		Expect(err).NotTo(HaveOccurred())
+
+		adapter := etcdadapter.NewEtcdAdapter(etcdCfg, Logger)
 
 		proxy := NewLockProxy(cfg, adapter, Logger)
 
