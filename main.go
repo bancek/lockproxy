@@ -11,6 +11,7 @@ import (
 
 	"github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/bancek/lockproxy/pkg/lockproxy/config"
+	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 )
 
 func main() {
@@ -66,7 +67,9 @@ func main() {
 		}
 	}()
 
-	proxy := lockproxy.NewLockProxy(cfg, logger)
+	adapter := etcdadapter.NewEtcdAdapter(cfg, logger)
+
+	proxy := lockproxy.NewLockProxy(cfg, adapter, logger)
 
 	err = proxy.Init(ctx)
 	if err != nil {

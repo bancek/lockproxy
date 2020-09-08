@@ -18,6 +18,7 @@ import (
 
 	. "github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/bancek/lockproxy/pkg/lockproxy/config"
+	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
 
@@ -44,7 +45,9 @@ var _ = Describe("LockProxy", func() {
 		err = envconfig.Process(prefix, cfg)
 		Expect(err).NotTo(HaveOccurred())
 
-		proxy := NewLockProxy(cfg, Logger)
+		adapter := etcdadapter.NewEtcdAdapter(cfg, Logger)
+
+		proxy := NewLockProxy(cfg, adapter, Logger)
 
 		startErr := make(chan error, 1)
 

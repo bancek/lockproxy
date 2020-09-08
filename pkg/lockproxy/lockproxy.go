@@ -4,22 +4,20 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
-	"go.etcd.io/etcd/clientv3"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
 
 	"github.com/bancek/lockproxy/pkg/lockproxy/config"
-	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
 )
 
 type LockProxy struct {
-	config *config.Config
-	logger *logrus.Entry
+	config  *config.Config
+	adapter Adapter
+	logger  *logrus.Entry
 
 	ctx            context.Context
 	cancel         func()
@@ -27,7 +25,6 @@ type LockProxy struct {
 	debugListener  net.Listener
 	healthListener net.Listener
 	proxyListener  net.Listener
-	etcdClient     *clientv3.Client
 	pinger         Pinger
 	addrStore      AddrStore
 	proxyDirector  *ProxyDirector
@@ -41,11 +38,13 @@ type LockProxy struct {
 
 func NewLockProxy(
 	config *config.Config,
+	adapter Adapter,
 	logger *logrus.Entry,
 ) *LockProxy {
 	return &LockProxy{
-		config: config,
-		logger: logger,
+		config:  config,
+		adapter: adapter,
+		logger:  logger,
 	}
 }
 
@@ -80,27 +79,28 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		return xerrors.Errorf("proxy listener listen failed: %s: %w", p.config.ProxyListenAddr, err)
 	}
 
-	p.logger.WithFields(logrus.Fields{
-		"endpoints": strings.Join(p.config.EtcdEndpoints, ","),
-	}).Info("LockProxy connecting to etcd")
-
-	p.etcdClient, err = etcdadapter.NewEtcdClient(ctx, p.config)
+	err = p.adapter.Init(ctx)
 	if err != nil {
-		return xerrors.Errorf("failed to connect to etcd: %w", err)
+		return xerrors.Errorf("failed to init adapter: %w", err)
 	}
 
-	p.logger.Info("LockProxy etcd connected")
+	pinger, err := p.adapter.GetPinger()
+	if err != nil {
+		return xerrors.Errorf("failed to get pinger: %w", err)
+	}
+	p.pinger = pinger
 
-	p.pinger = etcdadapter.NewPinger(
-		p.etcdClient,
-		p.config.EtcdAddrKey,
-		p.config.EtcdPingTimeout,
-		p.config.EtcdPingDelay,
-		p.config.EtcdPingInitialDelay,
-		p.logger,
-	)
+	addrStore, err := p.adapter.GetAddrStore()
+	if err != nil {
+		return xerrors.Errorf("failed to get addrStore: %w", err)
+	}
+	p.addrStore = addrStore
 
-	p.addrStore = etcdadapter.NewAddrStore(p.etcdClient, p.config.EtcdAddrKey, p.logger)
+	locker, err := p.adapter.GetLocker(p.onLocked)
+	if err != nil {
+		return xerrors.Errorf("failed to get locker: %w", err)
+	}
+	p.locker = locker
 
 	p.proxyDirector = NewProxyDirector(
 		ctx,
@@ -114,15 +114,6 @@ func (p *LockProxy) Init(ctx context.Context) error {
 	)
 
 	p.commander = NewCommander(p.config.Cmd, p.config.CmdShutdownTimeout, p.logger)
-
-	p.locker = etcdadapter.NewLocker(
-		p.etcdClient,
-		p.config.EtcdLockKey,
-		p.config.EtcdLockTTL,
-		p.config.EtcdUnlockTimeout,
-		p.onLocked,
-		p.logger,
-	)
 
 	p.debugServer = NewDebugServer()
 
@@ -260,9 +251,9 @@ func (p *LockProxy) Close() error {
 			closeErr = multierror.Append(closeErr, xerrors.Errorf("failed to close proxy listener: %w", err))
 		}
 	}
-	if p.etcdClient != nil {
-		if err := p.etcdClient.Close(); err != nil {
-			closeErr = multierror.Append(closeErr, xerrors.Errorf("failed to close etcd client: %w", err))
+	if p.adapter != nil {
+		if err := p.adapter.Close(); err != nil {
+			closeErr = multierror.Append(closeErr, xerrors.Errorf("failed to close adapter: %w", err))
 		}
 	}
 
