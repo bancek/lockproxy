@@ -49,6 +49,12 @@ func (c *Commander) Start(ctx context.Context) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	process := cmd.Process
+
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -56,7 +62,7 @@ func (c *Commander) Start(ctx context.Context) error {
 				"cmdShutdownTimeout": c.cmdShutdownTimeout,
 			}).Info("Commander gracefully shutting down")
 
-			_ = cmd.Process.Signal(syscall.SIGINT)
+			_ = process.Signal(syscall.SIGINT)
 
 			timer := time.NewTimer(c.cmdShutdownTimeout)
 
@@ -71,7 +77,7 @@ func (c *Commander) Start(ctx context.Context) error {
 		}
 	}()
 
-	err := cmd.Run()
+	err := cmd.Wait()
 
 	cmdExited <- struct{}{}
 
