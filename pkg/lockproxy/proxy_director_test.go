@@ -1,12 +1,14 @@
 package lockproxy_test
 
 import (
+	"context"
 	"net"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
@@ -172,3 +174,17 @@ var _ = Describe("ProxyDirector", func() {
 		healthServiceMock.AssertNumberOfCalls(GinkgoT(), "Check", 0)
 	})
 })
+
+type healthServiceMock struct {
+	mock.Mock
+}
+
+func (m *healthServiceMock) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
+	args := m.Called()
+	return args.Get(0).(*grpc_health_v1.HealthCheckResponse), args.Error(1)
+}
+
+func (m *healthServiceMock) Watch(req *grpc_health_v1.HealthCheckRequest, w grpc_health_v1.Health_WatchServer) error {
+	args := m.Called()
+	return args.Error(0)
+}

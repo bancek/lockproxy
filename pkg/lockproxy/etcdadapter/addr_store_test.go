@@ -1,4 +1,4 @@
-package lockproxy_test
+package etcdadapter_test
 
 import (
 	"context"
@@ -8,20 +8,22 @@ import (
 	. "github.com/onsi/gomega"
 	"golang.org/x/sync/errgroup"
 
-	. "github.com/bancek/lockproxy/pkg/lockproxy"
+	. "github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
+	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter/etcdtest"
+	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
 
 var _ = Describe("AddrStore", func() {
 	var addrKey string
 
 	buildStore := func() *AddrStore {
-		s := NewAddrStore(EtcdClient, addrKey, Logger)
+		s := NewAddrStore(etcdtest.EtcdClient, addrKey, Logger)
 		Expect(s.Init(TestCtx)).To(Succeed())
 		return s
 	}
 
 	BeforeEach(func() {
-		addrKey = "/" + Rand()
+		addrKey = "/" + testhelpers.Rand()
 	})
 
 	Describe("Init", func() {
@@ -31,9 +33,9 @@ var _ = Describe("AddrStore", func() {
 		})
 
 		It("should initialize the store with an address", func() {
-			s := NewAddrStore(EtcdClient, addrKey, Logger)
+			s := NewAddrStore(etcdtest.EtcdClient, addrKey, Logger)
 
-			addr := Rand()
+			addr := testhelpers.Rand()
 			Expect(s.SetAddr(TestCtx, addr)).To(Succeed())
 
 			Expect(s.Init(TestCtx)).To(Succeed())
@@ -42,8 +44,8 @@ var _ = Describe("AddrStore", func() {
 		})
 
 		It("should fail if etcd client proxy is closed", func() {
-			s := NewAddrStore(EtcdClient, addrKey, Logger)
-			EtcdProxy.Close()
+			s := NewAddrStore(etcdtest.EtcdClient, addrKey, Logger)
+			_ = etcdtest.EtcdProxy.Close()
 
 			ctx, cancel := context.WithTimeout(TestCtx, 300*time.Millisecond)
 			defer cancel()
@@ -77,7 +79,7 @@ var _ = Describe("AddrStore", func() {
 			Eventually(watch1Created).Should(Receive())
 			Eventually(watch2Created).Should(Receive())
 
-			addr := Rand()
+			addr := testhelpers.Rand()
 
 			Expect(s2.SetAddr(TestCtx, addr)).To(Succeed())
 

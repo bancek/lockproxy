@@ -1,4 +1,4 @@
-package lockproxy_test
+package etcdadapter_test
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter/etcdtest"
-	"github.com/bancek/lockproxy/pkg/lockproxy/redisadapter/redistest"
 	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
 
@@ -18,12 +17,9 @@ var TestCtx context.Context
 var TestCtxTimeoutCancel func()
 var Logger *logrus.Entry
 
-func TestLockproxy(t *testing.T) {
+func TestEtcdAdapter(t *testing.T) {
 	if !etcdtest.EtcdInitTesting(t) {
 		t.Fatal("Etcd not initialized")
-	}
-	if !redistest.RedisInitTesting(t) {
-		t.Fatal("Redis not initialized")
 	}
 
 	RegisterFailHandler(Fail)
@@ -31,21 +27,19 @@ func TestLockproxy(t *testing.T) {
 	SetDefaultEventuallyTimeout(10 * time.Second)
 	SetDefaultEventuallyPollingInterval(10 * time.Millisecond)
 
-	RunSpecs(t, "Lockproxy Suite")
+	RunSpecs(t, "EtcdAdapter Suite")
 }
 
 var _ = BeforeEach(func() {
 	TestCtx, TestCtxTimeoutCancel = context.WithTimeout(context.Background(), 10*time.Second)
 
 	etcdtest.EtcdBeforeEach(TestCtx)
-	redistest.RedisBeforeEach()
 
 	Logger = testhelpers.NewLoggerEntry()
 })
 
 var _ = AfterEach(func() {
 	etcdtest.EtcdAfterEach()
-	redistest.RedisAfterEach()
 
 	TestCtxTimeoutCancel()
 })

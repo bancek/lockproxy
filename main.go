@@ -6,9 +6,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
+
+	"github.com/bancek/lockproxy/pkg/lockproxy"
+	"github.com/bancek/lockproxy/pkg/lockproxy/config"
+	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
+	"github.com/bancek/lockproxy/pkg/lockproxy/redisadapter"
 )
 
 func main() {
@@ -23,18 +27,54 @@ func main() {
 		"service": "lockproxy",
 	})
 
-	config := lockproxy.Config{}
+	cfg := &config.Config{}
 
-	err := envconfig.Process("lockproxy", &config)
+	err := envconfig.Process("lockproxy", cfg)
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithError(err).Fatal("Failed to load config from env")
 	}
 
-	logLevel, err := logrus.ParseLevel(config.LogLevel)
+	logLevel, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithError(err).Fatal("Failed to parse log level")
 	}
 	baseLogger.SetLevel(logLevel)
+
+	if len(os.Args) > 1 {
+		if len(cfg.Cmd) > 0 {
+			logger.WithError(err).Fatal("Cannot specify both LOCKPROXY_CMD and process arguments")
+		}
+
+		cfg.Cmd = os.Args[1:]
+
+		if cfg.Cmd[0] == "--" {
+			cfg.Cmd = cfg.Cmd[1:]
+		}
+	}
+
+	var adapter lockproxy.Adapter
+
+	if cfg.Adapter == "etcd" {
+		etcdCfg := &etcdadapter.EtcdConfig{}
+
+		err := envconfig.Process("lockproxy", etcdCfg)
+		if err != nil {
+			logger.WithError(err).Fatal("Failed to load etcd config from env")
+		}
+
+		adapter = etcdadapter.NewEtcdAdapter(etcdCfg, logger)
+	} else if cfg.Adapter == "redis" {
+		redisCfg := &redisadapter.RedisConfig{}
+
+		err := envconfig.Process("lockproxy", redisCfg)
+		if err != nil {
+			logger.WithError(err).Fatal("Failed to load redis config from env")
+		}
+
+		adapter = redisadapter.NewRedisAdapter(redisCfg, logger)
+	} else {
+		logger.WithField("adapter", cfg.Adapter).Fatal("Invalid adapter")
+	}
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -52,16 +92,17 @@ func main() {
 		}
 	}()
 
-	proxy := lockproxy.NewLockProxy(&config, logger)
+	proxy := lockproxy.NewLockProxy(cfg, adapter, logger)
 
 	err = proxy.Init(ctx)
 	if err != nil {
-		os.Exit(1)
+		logger.WithError(err).Fatal("Failed to init lock proxy")
 	}
 	defer proxy.Close()
 
 	err = proxy.Start()
 	if err != nil {
+		logger.WithError(err).Warn("Lock proxy shutdown")
 		os.Exit(2)
 	}
 }

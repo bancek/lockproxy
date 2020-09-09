@@ -1,20 +1,34 @@
 # lockproxy
 
-Lockproxy is a gRPC proxy. It uses etcd to make sure that only one instance of
-proxy starts the upstream service and other instances proxy their requests to
-it.
+Lockproxy is a gRPC proxy. It uses etcd or Redis to make sure that only one
+instance of proxy starts the upstream service and other instances proxy their
+requests to it.
 
 ## Running
 
 ```sh
+# etcd
 etcd
+
+# redis
+docker run --rm -p 6381:6379 redis
 
 go build ./pkg/lockproxy/dummycmd
 go build main.go
 
+export LOCKPROXY_LOGLEVEL="debug"
+
+# etcd
+export LOCKPROXY_ADAPTER="etcd"
 export LOCKPROXY_ETCDLOCKKEY="/applock"
 export LOCKPROXY_ETCDADDRKEY="/leaderaddr"
 export LOCKPROXY_LOGLEVEL="debug"
+
+# redis
+export LOCKPROXY_ADAPTER="redis"
+export LOCKPROXY_REDISURL="redis://localhost:6381"
+export LOCKPROXY_REDISLOCKKEY="applock"
+export LOCKPROXY_REDISADDRKEY="leaderaddr"
 
 UPSTREAMCMD_PORT=1080 \
   LOCKPROXY_CMD="./dummycmd -addr localhost:1080" \
@@ -50,7 +64,10 @@ grpc-health-probe -addr 127.0.0.1:3081
 ```sh
 etcd
 
+docker run --rm -p 6381:6379 redis
+
 export ETCD_ENDPOINT="localhost:2379"
+export REDIS_ADDR="localhost:6381"
 
 go test ./...
 ```
