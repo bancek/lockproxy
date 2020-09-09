@@ -8,7 +8,7 @@ import (
 
 // Config contains the configuration for the lockproxy
 type Config struct {
-	// Adapter is the adapter to use ("etcd" by default).
+	// Adapter is the adapter to use ("etcd" or "redis", "etcd" by default).
 	// (LOCKPROXY_ADAPTER)
 	Adapter string `default:"etcd"`
 

@@ -12,6 +12,7 @@ import (
 	"github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/bancek/lockproxy/pkg/lockproxy/config"
 	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
+	"github.com/bancek/lockproxy/pkg/lockproxy/redisadapter"
 )
 
 func main() {
@@ -62,6 +63,15 @@ func main() {
 		}
 
 		adapter = etcdadapter.NewEtcdAdapter(etcdCfg, logger)
+	} else if cfg.Adapter == "redis" {
+		redisCfg := &redisadapter.RedisConfig{}
+
+		err := envconfig.Process("lockproxy", redisCfg)
+		if err != nil {
+			logger.WithError(err).Fatal("Failed to load redis config from env")
+		}
+
+		adapter = redisadapter.NewRedisAdapter(redisCfg, logger)
 	} else {
 		logger.WithField("adapter", cfg.Adapter).Fatal("Invalid adapter")
 	}
