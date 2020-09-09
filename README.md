@@ -59,6 +59,14 @@ grpc-health-probe -addr 127.0.0.1:1081
 grpc-health-probe -addr 127.0.0.1:2081
 grpc-health-probe -addr 127.0.0.1:3081
 
+grpc-health-probe -addr 127.0.0.1:1082
+grpc-health-probe -addr 127.0.0.1:2082
+grpc-health-probe -addr 127.0.0.1:3082
+
+grpc-health-probe -addr 127.0.0.1:1082 -service lockproxyleader
+grpc-health-probe -addr 127.0.0.1:2082 -service lockproxyleader
+grpc-health-probe -addr 127.0.0.1:3082 -service lockproxyleader
+
 ./dummyclient -addr 127.0.0.1:1081 lockproxy test
 ./dummyclient -addr 127.0.0.1:2081 lockproxy test
 ./dummyclient -addr 127.0.0.1:3081 lockproxy test
