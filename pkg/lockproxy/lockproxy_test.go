@@ -79,6 +79,12 @@ var _ = Describe("LockProxy", func() {
 				defer conn.Close()
 
 				healthClient := grpc_health_v1.NewHealthClient(conn)
+
+				Eventually(func() error {
+					_, err := healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+					return err
+				}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
+
 				resp, err := healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resp.Status).To(Equal(grpc_health_v1.HealthCheckResponse_SERVING))
