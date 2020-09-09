@@ -68,7 +68,11 @@ var _ = Describe("LockProxy", func() {
 
 				err = proxy.Init(ctx)
 				Expect(err).NotTo(HaveOccurred())
-				defer proxy.Close()
+				defer func() {
+					cancel()
+					Eventually(startErr).Should(Receive())
+					proxy.Close()
+				}()
 
 				go func() {
 					startErr <- proxy.Start()
@@ -105,8 +109,6 @@ var _ = Describe("LockProxy", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resp1.Message).To(Equal("Hello " + name))
 			}()
-
-			Eventually(startErr).Should(Receive())
 		})
 	}
 
