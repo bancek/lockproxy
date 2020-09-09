@@ -46,8 +46,14 @@ func (l *Locker) Start(ctx context.Context) error {
 
 	l.logger.WithField("lockKey", l.lockKey).Info("Locker acquiring lock")
 
-	if err := mutex.Lock(); err != nil {
-		return xerrors.Errorf("failed to lock: %w", err)
+	for {
+		if err := mutex.Lock(); err != nil {
+			if xerrors.Is(err, redsync.ErrFailed) {
+				continue
+			}
+			return xerrors.Errorf("failed to lock: %w", err)
+		}
+		break
 	}
 
 	l.logger.WithField("lockKey", l.lockKey).Info("Locker locked")
