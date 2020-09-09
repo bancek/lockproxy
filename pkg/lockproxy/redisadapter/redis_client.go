@@ -45,7 +45,7 @@ func GetSafeURL(redisURL string) string {
 		return redisURL
 	}
 	if _, ok := u.User.Password(); ok {
-		u.User = url.UserPassword(u.User.Username(), "********")
+		u.User = url.UserPassword(u.User.Username(), "XXXXXXXX")
 	}
 	return u.String()
 }
