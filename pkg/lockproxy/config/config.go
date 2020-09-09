@@ -63,7 +63,7 @@ type Config struct {
 	// Cmd is the command of the server. Arguments are separated using spaces and
 	// can be quoted.
 	// (LOCKPROXY_CMD)
-	Cmd Cmd `required:"true"`
+	Cmd Cmd
 
 	// CmdShutdownTimeout is the timeout after which the command will be
 	// forecefully killed after the proxy is stopped. Command will first receive
