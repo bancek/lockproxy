@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -51,6 +52,8 @@ type healthService struct {
 }
 
 func (s *healthService) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
+	log.Println("Check", req.Service)
+
 	return &grpc_health_v1.HealthCheckResponse{
 		Status: grpc_health_v1.HealthCheckResponse_SERVING,
 	}, nil
@@ -64,5 +67,7 @@ type helloworldService struct {
 }
 
 func (s *helloworldService) SayHello(ctx context.Context, req *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	return &helloworld.HelloReply{Message: "Hello " + req.GetName()}, nil
+	log.Println("SayHello", req.Name)
+
+	return &helloworld.HelloReply{Message: "Hello " + req.Name}, nil
 }
