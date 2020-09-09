@@ -43,6 +43,7 @@ var _ = Describe("ProxyDirector", func() {
 		grpcMaxCallRecvMsgSize int,
 		grpcMaxCallSendMsgSize int,
 		abortTimeout time.Duration,
+		proxyHealthFollowerInternal bool,
 	) (grpc_health_v1.HealthClient, func()) {
 		grpcDialTransportSecurity := grpc.WithInsecure()
 
@@ -59,6 +60,7 @@ var _ = Describe("ProxyDirector", func() {
 			grpcMaxCallRecvMsgSize,
 			grpcMaxCallSendMsgSize,
 			abortTimeout,
+			proxyHealthFollowerInternal,
 			Logger,
 		)
 		proxyServer := NewProxyServer(proxyDirector)
@@ -92,6 +94,7 @@ var _ = Describe("ProxyDirector", func() {
 			4*1024*1024,
 			4*1024*1024,
 			10*time.Second,
+			true,
 		)
 		defer stop()
 
@@ -103,7 +106,7 @@ var _ = Describe("ProxyDirector", func() {
 		healthServiceMock2.AssertNumberOfCalls(GinkgoT(), "Check", 0)
 	})
 
-	It("should proxy health to local server if not leader", func() {
+	It("should proxy health to local server if follower and proxyHealthFollowerInternal is enabled", func() {
 		healthAddr1, healthServiceMock1, healthStop1 := createHealthServer()
 		defer healthStop1()
 		healthAddr2, healthServiceMock2, healthStop2 := createHealthServer()
@@ -117,6 +120,7 @@ var _ = Describe("ProxyDirector", func() {
 			4*1024*1024,
 			4*1024*1024,
 			10*time.Second,
+			true,
 		)
 		defer stop()
 
@@ -126,6 +130,32 @@ var _ = Describe("ProxyDirector", func() {
 
 		healthServiceMock1.AssertNumberOfCalls(GinkgoT(), "Check", 0)
 		healthServiceMock2.AssertCalled(GinkgoT(), "Check")
+	})
+
+	It("should proxy health to local server if follower and proxyHealthFollowerInternal is disabled", func() {
+		healthAddr1, healthServiceMock1, healthStop1 := createHealthServer()
+		defer healthStop1()
+		healthAddr2, healthServiceMock2, healthStop2 := createHealthServer()
+		defer healthStop2()
+		upstreamAddrProvider := func() (addr string, isLeader bool) {
+			return healthAddr1, false
+		}
+		healthClient, stop := createDirector(
+			upstreamAddrProvider,
+			healthAddr2,
+			4*1024*1024,
+			4*1024*1024,
+			10*time.Second,
+			false,
+		)
+		defer stop()
+
+		resp, err := healthClient.Check(TestCtx, &grpc_health_v1.HealthCheckRequest{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.Status).To(Equal(grpc_health_v1.HealthCheckResponse_SERVING))
+
+		healthServiceMock1.AssertCalled(GinkgoT(), "Check")
+		healthServiceMock2.AssertNumberOfCalls(GinkgoT(), "Check", 0)
 	})
 
 	It("should fail if response is larger than grpcMaxCallRecvMsgSize", func() {
@@ -140,6 +170,7 @@ var _ = Describe("ProxyDirector", func() {
 			1,
 			4*1024*1024,
 			10*time.Second,
+			true,
 		)
 		defer stop()
 
@@ -162,6 +193,7 @@ var _ = Describe("ProxyDirector", func() {
 			4*1024*1024,
 			1,
 			10*time.Second,
+			true,
 		)
 		defer stop()
 

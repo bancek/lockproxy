@@ -32,25 +32,31 @@ type Config struct {
 	// (LOCKPROXY_ProxyListenAddr)
 	ProxyListenAddr string `default:"localhost:4081"`
 
-	// ProxyRequestAbortTimeout is the duration after which the connection to
-	// an upstream is aborted after the current upstream address changes.
+	// ProxyRequestAbortTimeout is the duration after which the connection to an
+	// upstream is aborted after the current upstream address changes.
 	// (LOCKPROXY_PROXYREQUESTABORTTIMEOUT)
 	ProxyRequestAbortTimeout time.Duration `default:"10s"`
 
-	// ProxyGrpcMaxCallRecvMsgSize is the maximum message size in bytes the proxy can receive.
+	// ProxyGrpcMaxCallRecvMsgSize is the maximum message size in bytes the proxy
+	// can receive.
 	// (LOCKPROXY_PROXYGRPCMAXCALLRECVMSGSIZE)
 	ProxyGrpcMaxCallRecvMsgSize int `default:"4194304"`
 
-	// ProxyGrpcMaxCallSendMsgSize is the maximum message size in bytes the proxy can send.
+	// ProxyGrpcMaxCallSendMsgSize is the maximum message size in bytes the proxy
+	// can send.
 	// (LOCKPROXY_PROXYGRPCMAXCALLSENDMSGSIZE)
 	ProxyGrpcMaxCallSendMsgSize int `default:"4194304"`
 
-	// HealthListenAddr is the address of the gRPC Health server. It should
-	// only be used internally. Health probes should be directed to ListenAddr.
+	// ProxyHealthFollowerInternal controls whether gRPC health checks should be proxied to the
+	// internal health server when the current instance is a follower.
+	// (LOCKPROXY_PROXYHEALTHFOLLOWERINTERNAL)
+	ProxyHealthFollowerInternal bool `default:"true"`
+
+	// HealthListenAddr is the address of the gRPC Health server.
 	// (LOCKPROXY_HEALTHLISTENADDR)
 	HealthListenAddr string `default:"localhost:4082"`
 
-	// DebugListenAddr is the address of the HTTP debug (pprof) server
+	// DebugListenAddr is the address of the HTTP debug (pprof) server.
 	// (LOCKPROXY_DEBUGLISTENADDR).
 	DebugListenAddr string `default:"localhost:4083"`
 
@@ -60,8 +66,8 @@ type Config struct {
 	Cmd Cmd `required:"true"`
 
 	// CmdShutdownTimeout is the timeout after which the command will be
-	// forecefully killed after the proxy is stopped. Command will first
-	// receive SIGINT and then SIGKILL after CmdShutdownTimeout.
+	// forecefully killed after the proxy is stopped. Command will first receive
+	// SIGINT and then SIGKILL after CmdShutdownTimeout.
 	// (LOCKPROXY_CMDSHUTDOWNTIMEOUT)
 	CmdShutdownTimeout time.Duration `default:"10s"`
 

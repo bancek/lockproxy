@@ -68,7 +68,11 @@ var _ = Describe("LockProxy", func() {
 
 				err = proxy.Init(ctx)
 				Expect(err).NotTo(HaveOccurred())
-				defer proxy.Close()
+				defer func() {
+					cancel()
+					Eventually(startErr).Should(Receive())
+					proxy.Close()
+				}()
 
 				go func() {
 					startErr <- proxy.Start()
@@ -80,13 +84,13 @@ var _ = Describe("LockProxy", func() {
 
 				healthClient := grpc_health_v1.NewHealthClient(conn)
 
-				Eventually(func() error {
-					_, err := healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+				var resp *grpc_health_v1.HealthCheckResponse
+
+				Eventually(func() (err error) {
+					resp, err = healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
 					return err
 				}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
 
-				resp, err := healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
-				Expect(err).NotTo(HaveOccurred())
 				Expect(resp.Status).To(Equal(grpc_health_v1.HealthCheckResponse_SERVING))
 
 				name := testhelpers.Rand()
@@ -105,8 +109,6 @@ var _ = Describe("LockProxy", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resp1.Message).To(Equal("Hello " + name))
 			}()
-
-			Eventually(startErr).Should(Receive())
 		})
 	}
 

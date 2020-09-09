@@ -18,6 +18,8 @@ type Locker struct {
 	lockTTL   int
 	onLocked  func(ctx context.Context) error
 	logger    *logrus.Entry
+
+	mutex *redsync.Mutex
 }
 
 func NewLocker(
@@ -32,57 +34,34 @@ func NewLocker(
 		lockKey:   lockKey,
 		lockTTL:   lockTTL,
 		onLocked:  onLocked,
-		logger:    logger,
+		logger:    logger.WithField("lockKey", lockKey),
 	}
 }
 
 func (l *Locker) Start(ctx context.Context) error {
-	pool := redigo.NewRedigoPool(l.redisPool)
-	rs := redsync.New([]redsyncredis.Pool{pool})
+	l.logger.Debug("Locker creating mutex")
 
-	l.logger.WithField("lockKey", l.lockKey).Debug("Locker creating mutex")
+	l.setupMutex(ctx)
 
-	mutex := rs.NewMutex(l.lockKey, redsync.SetExpiry(time.Duration(l.lockTTL)*time.Second))
+	l.logger.Info("Locker acquiring lock")
 
-	l.logger.WithField("lockKey", l.lockKey).Info("Locker acquiring lock")
-
-	if err := mutex.Lock(); err != nil {
-		return xerrors.Errorf("failed to lock: %w", err)
+	locked, err := l.lock(ctx)
+	if err != nil {
+		return err
+	}
+	if !locked {
+		return nil
 	}
 
-	l.logger.WithField("lockKey", l.lockKey).Info("Locker locked")
+	l.logger.Info("Locker locked")
 
 	ctx, cancel := context.WithCancel(ctx)
 	extendErrChan := make(chan error, 1)
 
-	go func() {
-		extendDelay := (time.Duration(l.lockTTL) * time.Second) / 2
+	go l.extendLoop(ctx, cancel, extendErrChan)
 
-		for {
-			timer := time.NewTimer(extendDelay)
-
-			select {
-			case <-timer.C:
-				extended, err := mutex.Extend()
-				if err != nil {
-					extendErrChan <- xerrors.Errorf("failed to extend the lock: %w", err)
-					return
-				}
-				if !extended {
-					extendErrChan <- xerrors.Errorf("lock not extended")
-					return
-				}
-
-			case <-ctx.Done():
-				timer.Stop()
-				cancel()
-
-				return
-			}
-		}
-	}()
-
-	err := l.onLocked(ctx)
+	err = l.onLocked(ctx)
+	cancel()
 
 	select {
 	case extendErr := <-extendErrChan:
@@ -90,19 +69,9 @@ func (l *Locker) Start(ctx context.Context) error {
 	default:
 	}
 
-	unlocked, unlockErr := mutex.Unlock()
+	l.logger.Info("Locker unlocking")
 
-	if unlockErr == nil {
-		if unlocked {
-			l.logger.WithField("lockKey", l.lockKey).Info("Locker unlocked")
-		} else {
-			l.logger.WithField("lockKey", l.lockKey).Warn("Locker failed to unlock")
-		}
-	} else {
-		l.logger.WithFields(logrus.Fields{
-			"lockKey": l.lockKey,
-		}).WithError(unlockErr).Warn("Locker unlock failed")
-	}
+	unlockErr := l.unlock()
 
 	if err != nil {
 		return xerrors.Errorf("on locked failed: %w", err)
@@ -113,4 +82,84 @@ func (l *Locker) Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (l *Locker) setupMutex(ctx context.Context) {
+	pool := redigo.NewRedigoPool(l.redisPool)
+	rs := redsync.New([]redsyncredis.Pool{pool})
+
+	l.mutex = rs.NewMutex(
+		l.lockKey,
+		redsync.SetExpiry(time.Duration(l.lockTTL)*time.Second),
+		redsync.SetRetryDelayFunc(func(tries int) time.Duration {
+			// try to exit Lock as fast as possible
+			if ctx.Err() != nil {
+				return 0
+			}
+			return 500 * time.Millisecond
+		}),
+	)
+}
+
+func (l *Locker) lock(ctx context.Context) (locked bool, err error) {
+	for {
+		if err := l.mutex.Lock(); err != nil {
+			if ctx.Err() != nil {
+				// lock was aborted, ignore the original err
+				return false, nil
+			}
+			if xerrors.Is(err, redsync.ErrFailed) {
+				continue
+			}
+			return false, xerrors.Errorf("failed to lock: %w", err)
+		}
+
+		return true, nil
+	}
+}
+
+func (l *Locker) extendLoop(ctx context.Context, cancel func(), extendErrChan chan error) {
+	defer cancel()
+
+	extendDelay := (time.Duration(l.lockTTL) * time.Second) / 2
+
+	for {
+		timer := time.NewTimer(extendDelay)
+
+		select {
+		case <-timer.C:
+			extended, err := l.mutex.Extend()
+			if err != nil {
+				extendErrChan <- xerrors.Errorf("failed to extend the lock: %w", err)
+				return
+			}
+			if !extended {
+				extendErrChan <- xerrors.Errorf("lock not extended")
+				return
+			}
+
+		case <-ctx.Done():
+			timer.Stop()
+
+			return
+		}
+	}
+}
+
+func (l *Locker) unlock() error {
+	unlocked, err := l.mutex.Unlock()
+
+	if err != nil {
+		l.logger.WithError(err).Warn("Locker unlock failed")
+
+		return err
+	}
+
+	if unlocked {
+		l.logger.Info("Locker unlocked")
+	} else {
+		l.logger.Warn("Locker failed to unlock")
+	}
+
+	return err
 }

@@ -110,6 +110,7 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		p.config.ProxyGrpcMaxCallRecvMsgSize,
 		p.config.ProxyGrpcMaxCallSendMsgSize,
 		p.config.ProxyRequestAbortTimeout,
+		p.config.ProxyHealthFollowerInternal,
 		p.logger,
 	)
 
@@ -117,7 +118,7 @@ func (p *LockProxy) Init(ctx context.Context) error {
 
 	p.debugServer = NewDebugServer()
 
-	p.healthService = NewHealthService()
+	p.healthService = NewHealthService(p.isLeader)
 	p.healthServer = NewHealthServer(p.healthService)
 
 	p.proxyServer = NewProxyServer(p.proxyDirector)
@@ -129,6 +130,12 @@ func (p *LockProxy) upstreamAddrProvider() (addr string, isLeader bool) {
 	addr = p.addrStore.Addr()
 	isLeader = addr == p.config.UpstreamAddr
 	return addr, isLeader
+}
+
+func (p *LockProxy) isLeader() bool {
+	addr := p.addrStore.Addr()
+
+	return addr == p.config.UpstreamAddr
 }
 
 func (p *LockProxy) onLocked(ctx context.Context) error {
