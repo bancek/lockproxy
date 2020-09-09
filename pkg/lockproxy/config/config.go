@@ -47,6 +47,11 @@ type Config struct {
 	// (LOCKPROXY_PROXYGRPCMAXCALLSENDMSGSIZE)
 	ProxyGrpcMaxCallSendMsgSize int `default:"4194304"`
 
+	// ProxyHealthFollowerInternal controls whether gRPC health checks should be proxied to the
+	// internal health server when the current instance is a follower.
+	// (LOCKPROXY_PROXYHEALTHFOLLOWERINTERNAL)
+	ProxyHealthFollowerInternal bool `default:"true"`
+
 	// HealthListenAddr is the address of the gRPC Health server.
 	// (LOCKPROXY_HEALTHLISTENADDR)
 	HealthListenAddr string `default:"localhost:4082"`

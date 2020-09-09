@@ -19,18 +19,20 @@ type UpstreamAddrProvider func() (addr string, isLeader bool)
 // It is called for every gRPC method call. It gets the current upstream
 // address from upstreamAddrProvider and fails with Unavailable if
 // the address is not set. It accepts a global Context after which
-// all the requests are cancelled. If the current method is
-// /grpc.health.v1.Health/* and the server is not leader we proxy
-// the request to the our internal health server.
+// all the requests are cancelled.
+//
+// If enabled and the current method is /grpc.health.v1.Health/* and the server
+// is not leader we proxy the request to the our internal health server.
 type ProxyDirector struct {
-	ctx                       context.Context
-	upstreamAddrProvider      UpstreamAddrProvider
-	healthAddr                string
-	grpcDialTransportSecurity grpc.DialOption
-	grpcMaxCallRecvMsgSize    int
-	grpcMaxCallSendMsgSize    int
-	abortTimeout              time.Duration
-	logger                    *logrus.Entry
+	ctx                         context.Context
+	upstreamAddrProvider        UpstreamAddrProvider
+	healthAddr                  string
+	grpcDialTransportSecurity   grpc.DialOption
+	grpcMaxCallRecvMsgSize      int
+	grpcMaxCallSendMsgSize      int
+	abortTimeout                time.Duration
+	proxyHealthFollowerInternal bool
+	logger                      *logrus.Entry
 
 	clientsCache *ttlcache.TtlCache
 }
@@ -43,19 +45,21 @@ func NewProxyDirector(
 	grpcMaxCallRecvMsgSize int,
 	grpcMaxCallSendMsgSize int,
 	abortTimeout time.Duration,
+	proxyHealthFollowerInternal bool,
 	logger *logrus.Entry,
 ) *ProxyDirector {
 	clientsCache := ttlcache.NewTtlCache(1 * time.Minute)
 
 	return &ProxyDirector{
-		ctx:                       ctx,
-		upstreamAddrProvider:      upstreamAddrProvider,
-		healthAddr:                healthAddr,
-		grpcDialTransportSecurity: grpcDialTransportSecurity,
-		grpcMaxCallRecvMsgSize:    grpcMaxCallRecvMsgSize,
-		grpcMaxCallSendMsgSize:    grpcMaxCallSendMsgSize,
-		abortTimeout:              abortTimeout,
-		logger:                    logger,
+		ctx:                         ctx,
+		upstreamAddrProvider:        upstreamAddrProvider,
+		healthAddr:                  healthAddr,
+		grpcDialTransportSecurity:   grpcDialTransportSecurity,
+		grpcMaxCallRecvMsgSize:      grpcMaxCallRecvMsgSize,
+		grpcMaxCallSendMsgSize:      grpcMaxCallSendMsgSize,
+		abortTimeout:                abortTimeout,
+		proxyHealthFollowerInternal: proxyHealthFollowerInternal,
+		logger:                      logger,
 
 		clientsCache: clientsCache,
 	}
@@ -106,11 +110,9 @@ func (d *ProxyDirector) Director(ctx context.Context, fullMethodName string) (co
 		}
 	}()
 
-	isHealth := d.isHealth(fullMethodName)
-
 	addr, isLeader := d.upstreamAddrProvider()
 
-	if isHealth && !isLeader {
+	if d.proxyHealthFollowerInternal && d.isHealth(fullMethodName) && !isLeader {
 		addr = d.healthAddr
 	}
 

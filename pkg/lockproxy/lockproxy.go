@@ -110,6 +110,7 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		p.config.ProxyGrpcMaxCallRecvMsgSize,
 		p.config.ProxyGrpcMaxCallSendMsgSize,
 		p.config.ProxyRequestAbortTimeout,
+		p.config.ProxyHealthFollowerInternal,
 		p.logger,
 	)
 
