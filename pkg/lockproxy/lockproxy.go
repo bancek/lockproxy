@@ -19,21 +19,22 @@ type LockProxy struct {
 	adapter Adapter
 	logger  *logrus.Entry
 
-	ctx            context.Context
-	cancel         func()
-	errGroup       *errgroup.Group
-	debugListener  net.Listener
-	healthListener net.Listener
-	proxyListener  net.Listener
-	pinger         Pinger
-	addrStore      AddrStore
-	proxyDirector  *ProxyDirector
-	commander      *Commander
-	locker         Locker
-	debugServer    *http.Server
-	healthService  *HealthService
-	healthServer   *grpc.Server
-	proxyServer    *grpc.Server
+	ctx             context.Context
+	cancel          func()
+	errGroup        *errgroup.Group
+	debugListener   net.Listener
+	healthListener  net.Listener
+	proxyListener   net.Listener
+	pinger          Pinger
+	localAddrStore  LocalAddrStore
+	remoteAddrStore RemoteAddrStore
+	proxyDirector   *ProxyDirector
+	commander       *Commander
+	locker          Locker
+	debugServer     *http.Server
+	healthService   *HealthService
+	healthServer    *grpc.Server
+	proxyServer     *grpc.Server
 }
 
 func NewLockProxy(
@@ -90,11 +91,13 @@ func (p *LockProxy) Init(ctx context.Context) error {
 	}
 	p.pinger = pinger
 
-	addrStore, err := p.adapter.GetAddrStore()
+	p.localAddrStore = NewMemoryAddrStore(p.logger)
+
+	remoteAddrStore, err := p.adapter.GetRemoteAddrStore(p.localAddrStore)
 	if err != nil {
-		return xerrors.Errorf("failed to get addrStore: %w", err)
+		return xerrors.Errorf("failed to get remote addr store: %w", err)
 	}
-	p.addrStore = addrStore
+	p.remoteAddrStore = remoteAddrStore
 
 	locker, err := p.adapter.GetLocker(p.onLocked)
 	if err != nil {
@@ -126,20 +129,19 @@ func (p *LockProxy) Init(ctx context.Context) error {
 	return nil
 }
 
-func (p *LockProxy) upstreamAddrProvider() (addr string, isLeader bool) {
-	addr = p.addrStore.Addr()
+func (p *LockProxy) upstreamAddrProvider(ctx context.Context) (addr string, isLeader bool) {
+	addr = p.remoteAddrStore.Addr(ctx)
 	isLeader = addr == p.config.UpstreamAddr
 	return addr, isLeader
 }
 
-func (p *LockProxy) isLeader() bool {
-	addr := p.addrStore.Addr()
-
+func (p *LockProxy) isLeader(ctx context.Context) bool {
+	addr := p.remoteAddrStore.Addr(ctx)
 	return addr == p.config.UpstreamAddr
 }
 
 func (p *LockProxy) onLocked(ctx context.Context) error {
-	err := p.addrStore.SetAddr(ctx, p.config.UpstreamAddr)
+	err := p.remoteAddrStore.SetAddr(ctx, p.config.UpstreamAddr)
 	if err != nil {
 		return xerrors.Errorf("failed to set addr: %w", err)
 	}
@@ -169,37 +171,28 @@ func (p *LockProxy) Start() error {
 		return nil
 	})
 
-	watchCreated := make(chan struct{}, 1)
+	addrStoreStarted := make(chan struct{}, 1)
 
-	p.logger.Info("LockProxy starting watch")
+	p.logger.Info("LockProxy starting addr store")
 
 	p.Spawn(func(ctx context.Context) error {
-		err := p.addrStore.Watch(ctx, func() {
-			watchCreated <- struct{}{}
+		err := p.remoteAddrStore.Start(ctx, func() {
+			addrStoreStarted <- struct{}{}
 		})
 		if err != nil {
-			p.logger.WithError(err).Info("LockProxy watch error")
+			p.logger.WithError(err).Info("LockProxy addr store error")
 			return err
 		}
 		return nil
 	})
 
-	p.logger.Info("LockProxy waiting for watch created")
-
 	select {
-	case <-watchCreated:
+	case <-addrStoreStarted:
 	case <-p.ctx.Done():
 		return p.ctx.Err()
 	}
 
-	p.logger.Info("LockProxy watch created")
-
-	err := p.addrStore.Init(p.ctx)
-	if err != nil {
-		return xerrors.Errorf("failed to initialize addr store: %w", err)
-	}
-
-	p.logger.Info("LockProxy store initialized")
+	p.logger.Info("LockProxy addr store started")
 
 	p.Spawn(func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.HealthListenAddr).Info("Starting health gRPC server")
@@ -229,7 +222,7 @@ func (p *LockProxy) Start() error {
 	p.healthServer.GracefulStop()
 	_ = p.debugServer.Shutdown(context.Background())
 
-	err = p.errGroup.Wait()
+	err := p.errGroup.Wait()
 	if err != nil {
 		p.logger.WithError(err).Warn("Shutdown with error")
 		return err

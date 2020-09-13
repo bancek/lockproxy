@@ -1,6 +1,7 @@
 package testhelpers
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,4 +29,8 @@ func NewLoggerEntry() *logrus.Entry {
 // Rand returns random 8 characters
 func Rand() string {
 	return uuid.New().String()[:8]
+}
+
+func GetEnvPrefix() string {
+	return strings.ToUpper("LOCKPROXYTEST" + Rand())
 }

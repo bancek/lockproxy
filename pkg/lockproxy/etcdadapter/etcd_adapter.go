@@ -55,11 +55,11 @@ func (a *EtcdAdapter) GetLocker(onLocked func(ctx context.Context) error) (lockp
 	), nil
 }
 
-func (a *EtcdAdapter) GetAddrStore() (lockproxy.AddrStore, error) {
+func (a *EtcdAdapter) GetRemoteAddrStore(localAddrStore lockproxy.LocalAddrStore) (lockproxy.RemoteAddrStore, error) {
 	if a.etcdClient == nil {
 		return nil, xerrors.Errorf("not initialized")
 	}
-	return NewAddrStore(a.etcdClient, a.config.EtcdAddrKey, a.logger), nil
+	return NewAddrStore(localAddrStore, a.etcdClient, a.config.EtcdAddrKey, a.logger), nil
 }
 
 func (a *EtcdAdapter) GetPinger() (lockproxy.Pinger, error) {

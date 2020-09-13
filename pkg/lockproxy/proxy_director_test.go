@@ -85,7 +85,7 @@ var _ = Describe("ProxyDirector", func() {
 		defer healthStop1()
 		healthAddr2, healthServiceMock2, healthStop2 := createHealthServer()
 		defer healthStop2()
-		upstreamAddrProvider := func() (addr string, isLeader bool) {
+		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr1, true
 		}
 		healthClient, stop := createDirector(
@@ -111,7 +111,7 @@ var _ = Describe("ProxyDirector", func() {
 		defer healthStop1()
 		healthAddr2, healthServiceMock2, healthStop2 := createHealthServer()
 		defer healthStop2()
-		upstreamAddrProvider := func() (addr string, isLeader bool) {
+		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr1, false
 		}
 		healthClient, stop := createDirector(
@@ -137,7 +137,7 @@ var _ = Describe("ProxyDirector", func() {
 		defer healthStop1()
 		healthAddr2, healthServiceMock2, healthStop2 := createHealthServer()
 		defer healthStop2()
-		upstreamAddrProvider := func() (addr string, isLeader bool) {
+		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr1, false
 		}
 		healthClient, stop := createDirector(
@@ -161,7 +161,7 @@ var _ = Describe("ProxyDirector", func() {
 	It("should fail if response is larger than grpcMaxCallRecvMsgSize", func() {
 		healthAddr, healthServiceMock, healthStop := createHealthServer()
 		defer healthStop()
-		upstreamAddrProvider := func() (addr string, isLeader bool) {
+		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr, true
 		}
 		healthClient, stop := createDirector(
@@ -184,7 +184,7 @@ var _ = Describe("ProxyDirector", func() {
 	It("should fail if request is larger than grpcMaxCallSendMsgSize", func() {
 		healthAddr, healthServiceMock, healthStop := createHealthServer()
 		defer healthStop()
-		upstreamAddrProvider := func() (addr string, isLeader bool) {
+		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr, true
 		}
 		healthClient, stop := createDirector(

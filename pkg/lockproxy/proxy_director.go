@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type UpstreamAddrProvider func() (addr string, isLeader bool)
+type UpstreamAddrProvider func(ctx context.Context) (addr string, isLeader bool)
 
 // ProxyDirector is gRPC connection handler.
 // It is called for every gRPC method call. It gets the current upstream
@@ -110,7 +110,7 @@ func (d *ProxyDirector) Director(ctx context.Context, fullMethodName string) (co
 		}
 	}()
 
-	addr, isLeader := d.upstreamAddrProvider()
+	addr, isLeader := d.upstreamAddrProvider(ctx)
 
 	if d.proxyHealthFollowerInternal && d.isHealth(fullMethodName) && !isLeader {
 		addr = d.healthAddr

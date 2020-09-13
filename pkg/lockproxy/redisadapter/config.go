@@ -26,16 +26,16 @@ type RedisConfig struct {
 	// (LOCKPROXY_REDISIDLETIMEOUT)
 	RedisIdleTimeout time.Duration `default:"5m"`
 
-	// RedisLockTTL is the duration of the redis lock (in seconds). The lock will
+	// RedisLockTTL is the duration of the Redis lock (in seconds). The lock will
 	// be refreshed every RedisLockTTL seconds.
 	// (LOCKPROXY_REDISLOCKTTL)
 	RedisLockTTL int `default:"10"`
 
-	// RedisLockKey is the redis key used for redis lock.
+	// RedisLockKey is the Redis key used for redis lock.
 	// (LOCKPROXY_REDISLOCKKEY)
 	RedisLockKey string `required:"true"`
 
-	// RedisAddrKey is the redis key used to store the address of the current
+	// RedisAddrKey is the Redis key used to store the address of the current
 	// leader.
 	// (LOCKPROXY_REDISADDRKEY)
 	RedisAddrKey string `required:"true"`
@@ -52,4 +52,12 @@ type RedisConfig struct {
 	// RedisPingInitialDelay is the delay before the first ping.
 	// (LOCKPROXY_REDISPINGINITIALDELAY)
 	RedisPingInitialDelay time.Duration `default:"10s"`
+
+	// RedisRetryInitialInterval is the initial delay for retrying.
+	// (LOCKPROXY_REDISRETRYINITIALINTERVAL)
+	RedisRetryInitialInterval time.Duration `default:"100ms"`
+
+	// RedisRetryMaxElapsedTime is the max elapsed time for retrying.
+	// (LOCKPROXY_REDISRETRYMAXELAPSEDTIME)
+	RedisRetryMaxElapsedTime time.Duration `default:"10s"`
 }

@@ -83,13 +83,17 @@ docker run --rm -p 6381:6379 redis
 export ETCD_ENDPOINT="localhost:2379"
 export REDIS_ADDR="localhost:6381"
 
-go test ./...
+go test -p=1 ./...
 ```
 
 ### Coverage
 
 ```sh
-go test --coverprofile lockproxy.coverprofile ./pkg/lockproxy && go tool cover -html=lockproxy.coverprofile -o lockproxy.coverprofile.html
+go test \
+  -coverprofile lockproxy.coverprofile \
+  -coverpkg ./pkg/lockproxy,./pkg/lockproxy/etcdadapter,./pkg/lockproxy/redisadapter \
+  ./pkg/lockproxy/... \
+  && go tool cover -html=lockproxy.coverprofile -o lockproxy.coverprofile.html
 ```
 
 ## Debug
