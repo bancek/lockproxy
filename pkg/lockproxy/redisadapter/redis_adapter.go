@@ -77,20 +77,6 @@ func (a *RedisAdapter) GetRemoteAddrStore(localAddrStore lockproxy.LocalAddrStor
 	), nil
 }
 
-func (a *RedisAdapter) GetPinger() (lockproxy.Pinger, error) {
-	if a.redisDialer == nil || a.redisPool == nil {
-		return nil, xerrors.Errorf("not initialized")
-	}
-	return NewPinger(
-		a.redisPool,
-		a.config.RedisAddrKey,
-		a.config.RedisPingTimeout,
-		a.config.RedisPingDelay,
-		a.config.RedisPingInitialDelay,
-		a.logger,
-	), nil
-}
-
 func (a *RedisAdapter) Close() error {
 	if a.redisPool != nil {
 		if err := a.redisPool.Close(); err != nil {

@@ -62,20 +62,6 @@ func (a *EtcdAdapter) GetRemoteAddrStore(localAddrStore lockproxy.LocalAddrStore
 	return NewAddrStore(localAddrStore, a.etcdClient, a.config.EtcdAddrKey, a.logger), nil
 }
 
-func (a *EtcdAdapter) GetPinger() (lockproxy.Pinger, error) {
-	if a.etcdClient == nil {
-		return nil, xerrors.Errorf("not initialized")
-	}
-	return NewPinger(
-		a.etcdClient,
-		a.config.EtcdAddrKey,
-		a.config.EtcdPingTimeout,
-		a.config.EtcdPingDelay,
-		a.config.EtcdPingInitialDelay,
-		a.logger,
-	), nil
-}
-
 func (a *EtcdAdapter) Close() error {
 	if a.etcdClient != nil {
 		if err := a.etcdClient.Close(); err != nil {

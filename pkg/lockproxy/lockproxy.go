@@ -25,7 +25,7 @@ type LockProxy struct {
 	debugListener   net.Listener
 	healthListener  net.Listener
 	proxyListener   net.Listener
-	pinger          Pinger
+	pinger          *Pinger
 	localAddrStore  LocalAddrStore
 	remoteAddrStore RemoteAddrStore
 	proxyDirector   *ProxyDirector
@@ -85,12 +85,6 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		return xerrors.Errorf("failed to init adapter: %w", err)
 	}
 
-	pinger, err := p.adapter.GetPinger()
-	if err != nil {
-		return xerrors.Errorf("failed to get pinger: %w", err)
-	}
-	p.pinger = pinger
-
 	p.localAddrStore = NewMemoryAddrStore(p.logger)
 
 	remoteAddrStore, err := p.adapter.GetRemoteAddrStore(p.localAddrStore)
@@ -98,6 +92,15 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		return xerrors.Errorf("failed to get remote addr store: %w", err)
 	}
 	p.remoteAddrStore = remoteAddrStore
+
+	p.pinger = NewPinger(
+		p.ping,
+		p.config.PingRetryInitialInterval,
+		p.config.PingRetryMaxElapsedTime,
+		p.config.PingDelay,
+		p.config.PingInitialDelay,
+		p.logger,
+	)
 
 	locker, err := p.adapter.GetLocker(p.onLocked)
 	if err != nil {
@@ -138,6 +141,11 @@ func (p *LockProxy) upstreamAddrProvider(ctx context.Context) (addr string, isLe
 func (p *LockProxy) isLeader(ctx context.Context) bool {
 	addr := p.remoteAddrStore.Addr(ctx)
 	return addr == p.config.UpstreamAddr
+}
+
+func (p *LockProxy) ping(ctx context.Context) error {
+	_, err := p.remoteAddrStore.Refresh(ctx)
+	return err
 }
 
 func (p *LockProxy) onLocked(ctx context.Context) error {

@@ -89,10 +89,10 @@ go test -p=1 ./...
 ### Coverage
 
 ```sh
-go test \
+go test -p=1 \
   -coverprofile lockproxy.coverprofile \
   -coverpkg ./pkg/lockproxy,./pkg/lockproxy/etcdadapter,./pkg/lockproxy/redisadapter \
-  ./pkg/lockproxy/... \
+  ./... \
   && go tool cover -html=lockproxy.coverprofile -o lockproxy.coverprofile.html
 ```
 

@@ -18,14 +18,9 @@ type RemoteAddrStore interface {
 	SetAddr(ctx context.Context, addr string) error
 }
 
-type Pinger interface {
-	Start(ctx context.Context) error
-}
-
 type Adapter interface {
 	Init(ctx context.Context) error
 	GetLocker(onLocked func(ctx context.Context) error) (Locker, error)
 	GetRemoteAddrStore(addrStore LocalAddrStore) (RemoteAddrStore, error)
-	GetPinger() (Pinger, error)
 	Close() error
 }

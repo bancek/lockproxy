@@ -40,19 +40,6 @@ type RedisConfig struct {
 	// (LOCKPROXY_REDISADDRKEY)
 	RedisAddrKey string `required:"true"`
 
-	// RedisPingTimeout is the timeout after which the ping is deemed failed and the
-	// process will exit.
-	// (LOCKPROXY_REDISPINGTIMEOUT)
-	RedisPingTimeout time.Duration `default:"10s"`
-
-	// RedisPingDelay is the delay between pings.
-	// (LOCKPROXY_REDISPINGDELAY)
-	RedisPingDelay time.Duration `default:"10s"`
-
-	// RedisPingInitialDelay is the delay before the first ping.
-	// (LOCKPROXY_REDISPINGINITIALDELAY)
-	RedisPingInitialDelay time.Duration `default:"10s"`
-
 	// RedisRetryInitialInterval is the initial delay for retrying.
 	// (LOCKPROXY_REDISRETRYINITIALINTERVAL)
 	RedisRetryInitialInterval time.Duration `default:"100ms"`
