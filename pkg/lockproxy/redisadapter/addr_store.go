@@ -131,11 +131,13 @@ func (s *AddrStore) Watch(ctx context.Context, onCreated func()) error {
 			default:
 			}
 
+			err := msg.(error)
+
 			s.logger.WithError(err).Debug("AddrStore receive error")
 
 			close(done)
 
-			return msg.(error)
+			return err
 		}
 	}
 }
