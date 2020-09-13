@@ -157,19 +157,29 @@ func (p *LockProxy) onLocked(ctx context.Context) error {
 	return p.commander.Start(ctx)
 }
 
-func (p *LockProxy) Spawn(f func(context.Context) error) {
+func (p *LockProxy) Spawn(name string, f func(context.Context) error) {
+	logger := p.logger.WithField("name", name)
+
 	p.errGroup.Go(func() error {
+		logger.Debug("Spawn start")
+
 		err := f(p.ctx)
 		if err != nil {
+			logger.WithError(err).Debug("Spawn done")
+
 			p.cancel()
+
 			return err
 		}
+
+		logger.Debug("Spawn done")
+
 		return nil
 	})
 }
 
 func (p *LockProxy) Start() error {
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("debugHTTPServer", func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.DebugListenAddr).Info("Starting debug HTTP server")
 
 		err := p.debugServer.Serve(p.debugListener)
@@ -183,7 +193,7 @@ func (p *LockProxy) Start() error {
 
 	p.logger.Info("LockProxy starting addr store")
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("remoteAddrStore", func(ctx context.Context) error {
 		err := p.remoteAddrStore.Start(ctx, func() {
 			addrStoreStarted <- struct{}{}
 		})
@@ -202,23 +212,23 @@ func (p *LockProxy) Start() error {
 
 	p.logger.Info("LockProxy addr store started")
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("healthServer", func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.HealthListenAddr).Info("Starting health gRPC server")
 
 		return p.healthServer.Serve(p.healthListener)
 	})
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("proxyServer", func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.ProxyListenAddr).Info("Starting proxy gRPC server")
 
 		return p.proxyServer.Serve(p.proxyListener)
 	})
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("locker", func(ctx context.Context) error {
 		return p.locker.Start(ctx)
 	})
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("pinger", func(ctx context.Context) error {
 		return p.pinger.Start(ctx)
 	})
 
