@@ -12,6 +12,8 @@ etcd
 
 # redis
 docker run --rm -p 6381:6379 redis
+# redis proxy for testing network errors
+socat tcp-listen:6382,reuseaddr,fork tcp:127.0.0.1:6381
 
 go build ./pkg/lockproxy/dummycmd
 go build ./pkg/lockproxy/dummyclient
@@ -23,11 +25,10 @@ export LOCKPROXY_LOGLEVEL="debug"
 export LOCKPROXY_ADAPTER="etcd"
 export LOCKPROXY_ETCDLOCKKEY="/applock"
 export LOCKPROXY_ETCDADDRKEY="/leaderaddr"
-export LOCKPROXY_LOGLEVEL="debug"
 
 # redis
 export LOCKPROXY_ADAPTER="redis"
-export LOCKPROXY_REDISURL="redis://localhost:6381"
+export LOCKPROXY_REDISURL="redis://localhost:6382"
 export LOCKPROXY_REDISLOCKKEY="applock"
 export LOCKPROXY_REDISADDRKEY="leaderaddr"
 
