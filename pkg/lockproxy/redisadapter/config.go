@@ -31,6 +31,16 @@ type RedisConfig struct {
 	// (LOCKPROXY_REDISLOCKTTL)
 	RedisLockTTL int `default:"10"`
 
+	// RedisLockTTL is the duration of the Redis lock (in seconds). The lock will
+	// be refreshed every RedisLockTTL seconds.
+	// (LOCKPROXY_REDISLOCKTTL)
+	RedisLockRetryDelay time.Duration `default:"100ms"`
+
+	// RedisUnlockTimeout is the max duration for waiting etcd to unlock after the
+	// Cmd is stopped.
+	// (LOCKPROXY_REDISUNLOCKTIMEOUT)
+	RedisUnlockTimeout time.Duration `default:"10s"`
+
 	// RedisLockKey is the Redis key used for redis lock.
 	// (LOCKPROXY_REDISLOCKKEY)
 	RedisLockKey string `required:"true"`

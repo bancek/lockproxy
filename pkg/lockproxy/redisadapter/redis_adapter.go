@@ -57,6 +57,10 @@ func (a *RedisAdapter) GetLocker(onLocked func(ctx context.Context) error) (lock
 		a.redisPool,
 		a.config.RedisLockKey,
 		a.config.RedisLockTTL,
+		a.config.RedisLockRetryDelay,
+		a.config.RedisUnlockTimeout,
+		a.config.RedisRetryInitialInterval,
+		a.config.RedisRetryMaxElapsedTime,
 		onLocked,
 		a.logger,
 	), nil
