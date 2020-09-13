@@ -2,7 +2,9 @@ package lockproxy_test
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/gomega"
@@ -18,6 +20,8 @@ import (
 type AdapterTest interface {
 	Name() string
 	SetupEnv(envPrefix string)
+	SetLockTTL(envPrefix string, ttlSeconds int)
+	SetUnlockTimeout(envPrefix string, timeout time.Duration)
 	GetAdapter(envPrefix string) Adapter
 	Abort()
 	Resume()
@@ -49,6 +53,14 @@ func (t *EtcdAdapterTest) SetupEnv(envPrefix string) {
 	os.Setenv(envPrefix+"_ETCDADDRKEY", "/addrkey"+testhelpers.Rand())
 }
 
+func (t *EtcdAdapterTest) SetLockTTL(envPrefix string, ttlSeconds int) {
+	os.Setenv(envPrefix+"_ETCDLOCKTTL", fmt.Sprintf("%d", ttlSeconds))
+}
+
+func (t *EtcdAdapterTest) SetUnlockTimeout(envPrefix string, timeout time.Duration) {
+	os.Setenv(envPrefix+"_ETCDUNLOCKTIMEOUT", timeout.String())
+}
+
 func (t *EtcdAdapterTest) GetAdapter(envPrefix string) Adapter {
 	etcdCfg := &etcdadapter.EtcdConfig{}
 
@@ -77,6 +89,14 @@ func (t *RedisAdapterTest) SetupEnv(envPrefix string) {
 	os.Setenv(envPrefix+"_REDISURL", "redis://"+redistest.RedisProxy.ListenAddr())
 	os.Setenv(envPrefix+"_REDISLOCKKEY", "lockkey"+testhelpers.Rand())
 	os.Setenv(envPrefix+"_REDISADDRKEY", "addrkey"+testhelpers.Rand())
+}
+
+func (t *RedisAdapterTest) SetLockTTL(envPrefix string, ttlSeconds int) {
+	os.Setenv(envPrefix+"_REDISLOCKTTL", fmt.Sprintf("%d", ttlSeconds))
+}
+
+func (t *RedisAdapterTest) SetUnlockTimeout(envPrefix string, timeout time.Duration) {
+	os.Setenv(envPrefix+"_REDISUNLOCKTIMEOUT", timeout.String())
 }
 
 func (t *RedisAdapterTest) GetAdapter(envPrefix string) Adapter {
