@@ -32,29 +32,23 @@ export LOCKPROXY_REDISURL="redis://localhost:6382"
 export LOCKPROXY_REDISLOCKKEY="applock"
 export LOCKPROXY_REDISADDRKEY="leaderaddr"
 
-UPSTREAMCMD_PORT=1080 \
-  LOCKPROXY_CMD="./dummycmd -addr localhost:1080" \
-  LOCKPROXY_UPSTREAMADDR=localhost:1080 \
+LOCKPROXY_UPSTREAMADDR=localhost:1080 \
   LOCKPROXY_PROXYLISTENADDR=localhost:1081 \
   LOCKPROXY_HEALTHLISTENADDR=localhost:1082 \
   LOCKPROXY_DEBUGLISTENADDR=localhost:1083 \
-  ./main
+  ./main ./dummycmd -addr localhost:1080
 
-UPSTREAMCMD_PORT=2080 \
-  LOCKPROXY_CMD="./dummycmd -addr localhost:2080" \
-  LOCKPROXY_UPSTREAMADDR=localhost:2080 \
+LOCKPROXY_UPSTREAMADDR=localhost:2080 \
   LOCKPROXY_PROXYLISTENADDR=localhost:2081 \
   LOCKPROXY_HEALTHLISTENADDR=localhost:2082 \
   LOCKPROXY_DEBUGLISTENADDR=localhost:2083 \
-  ./main
+  ./main ./dummycmd -addr localhost:2080
 
-UPSTREAMCMD_PORT=3080 \
-  LOCKPROXY_CMD="./dummycmd -addr localhost:3080" \
-  LOCKPROXY_UPSTREAMADDR=localhost:3080 \
+LOCKPROXY_UPSTREAMADDR=localhost:3080 \
   LOCKPROXY_PROXYLISTENADDR=localhost:3081 \
   LOCKPROXY_HEALTHLISTENADDR=localhost:3082 \
   LOCKPROXY_DEBUGLISTENADDR=localhost:3083 \
-  ./main
+  ./main ./dummycmd -addr localhost:3080
 
 grpc-health-probe -addr 127.0.0.1:1081
 grpc-health-probe -addr 127.0.0.1:2081
