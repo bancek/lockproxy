@@ -48,17 +48,4 @@ type EtcdConfig struct {
 	// leader.
 	// (LOCKPROXY_ETCDADDRKEY)
 	EtcdAddrKey string `required:"true"`
-
-	// EtcdPingTimeout is the timeout after which the ping is deemed failed and the
-	// process will exit.
-	// (LOCKPROXY_ETCDPINGTIMEOUT)
-	EtcdPingTimeout time.Duration `default:"10s"`
-
-	// EtcdPingDelay is the delay between pings.
-	// (LOCKPROXY_ETCDPINGDELAY)
-	EtcdPingDelay time.Duration `default:"10s"`
-
-	// EtcdPingInitialDelay is the delay before the first ping.
-	// (LOCKPROXY_ETCDPINGINITIALDELAY)
-	EtcdPingInitialDelay time.Duration `default:"10s"`
 }

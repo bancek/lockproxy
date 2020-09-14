@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -18,9 +17,6 @@ import (
 
 	. "github.com/bancek/lockproxy/pkg/lockproxy"
 	"github.com/bancek/lockproxy/pkg/lockproxy/config"
-	"github.com/bancek/lockproxy/pkg/lockproxy/etcdadapter"
-	"github.com/bancek/lockproxy/pkg/lockproxy/redisadapter"
-	"github.com/bancek/lockproxy/pkg/lockproxy/redisadapter/redistest"
 	"github.com/bancek/lockproxy/pkg/lockproxy/testhelpers"
 )
 
@@ -36,114 +32,80 @@ var _ = Describe("LockProxy", func() {
 		return dummyCmdPath
 	}
 
-	generateTests := func(
-		setupEnv func(envPrefix string),
-		getAdapter func(envPrefix string) Adapter,
-	) {
-		It("should run the proxy", func() {
-			tmpDir, err := ioutil.TempDir("", "")
-			Expect(err).NotTo(HaveOccurred())
-
-			dummyCmdPath := buildDummyCmd(tmpDir)
-
-			cfg := &config.Config{}
-
-			envPrefix := strings.ToUpper("LOCKPROXYTEST" + testhelpers.Rand())
-
-			os.Setenv(envPrefix+"_CMD", dummyCmdPath+" -addr 127.0.0.1:4080")
-			setupEnv(envPrefix)
-
-			err = envconfig.Process(envPrefix, cfg)
-			Expect(err).NotTo(HaveOccurred())
-
-			adapter := getAdapter(envPrefix)
-
-			proxy := NewLockProxy(cfg, adapter, Logger)
-
-			startErr := make(chan error, 1)
-
-			func() {
-				ctx, cancel := context.WithCancel(TestCtx)
-				defer cancel()
-
-				err = proxy.Init(ctx)
+	generateTests := func(adapterTest AdapterTest) {
+		Describe(adapterTest.Name(), func() {
+			It("should run the proxy", func() {
+				tmpDir, err := ioutil.TempDir("", "")
 				Expect(err).NotTo(HaveOccurred())
-				defer func() {
-					cancel()
-					Eventually(startErr).Should(Receive())
-					proxy.Close()
-				}()
 
-				go func() {
-					startErr <- proxy.Start()
-				}()
+				dummyCmdPath := buildDummyCmd(tmpDir)
 
-				conn, err := grpc.DialContext(ctx, "127.0.0.1:4081", grpc.WithInsecure())
+				cfg := &config.Config{}
+
+				os.Setenv(EnvPrefix+"_CMD", dummyCmdPath+" -addr 127.0.0.1:4080")
+				adapterTest.SetupEnv(EnvPrefix)
+
+				err = envconfig.Process(EnvPrefix, cfg)
 				Expect(err).NotTo(HaveOccurred())
-				defer conn.Close()
 
-				healthClient := grpc_health_v1.NewHealthClient(conn)
+				adapter := adapterTest.GetAdapter(EnvPrefix)
 
-				var resp *grpc_health_v1.HealthCheckResponse
+				proxy := NewLockProxy(cfg, adapter, Logger)
 
-				Eventually(func() (err error) {
-					resp, err = healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
-					return err
-				}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
+				startErr := make(chan error, 1)
 
-				Expect(resp.Status).To(Equal(grpc_health_v1.HealthCheckResponse_SERVING))
+				func() {
+					ctx, cancel := context.WithCancel(TestCtx)
+					defer cancel()
 
-				name := testhelpers.Rand()
+					err = proxy.Init(ctx)
+					Expect(err).NotTo(HaveOccurred())
+					defer func() {
+						cancel()
+						Eventually(startErr).Should(Receive())
+						proxy.Close()
+					}()
 
-				greeterClient := helloworld.NewGreeterClient(conn)
+					go func() {
+						startErr <- proxy.Start()
+					}()
 
-				Eventually(func() error {
-					_, err := greeterClient.SayHello(ctx, &helloworld.HelloRequest{
+					conn, err := grpc.DialContext(ctx, "127.0.0.1:4081", grpc.WithInsecure())
+					Expect(err).NotTo(HaveOccurred())
+					defer conn.Close()
+
+					healthClient := grpc_health_v1.NewHealthClient(conn)
+
+					var resp *grpc_health_v1.HealthCheckResponse
+
+					Eventually(func() (err error) {
+						resp, err = healthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+						return err
+					}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
+
+					Expect(resp.Status).To(Equal(grpc_health_v1.HealthCheckResponse_SERVING))
+
+					name := testhelpers.Rand()
+
+					greeterClient := helloworld.NewGreeterClient(conn)
+
+					Eventually(func() error {
+						_, err := greeterClient.SayHello(ctx, &helloworld.HelloRequest{
+							Name: name,
+						})
+						return err
+					}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
+					resp1, err := greeterClient.SayHello(ctx, &helloworld.HelloRequest{
 						Name: name,
 					})
-					return err
-				}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
-				resp1, err := greeterClient.SayHello(ctx, &helloworld.HelloRequest{
-					Name: name,
-				})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(resp1.Message).To(Equal("Hello " + name))
-			}()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(resp1.Message).To(Equal("Hello " + name))
+				}()
+			})
 		})
 	}
 
-	Describe("EtcdAdapter", func() {
-		generateTests(
-			func(envPrefix string) {
-				os.Setenv(envPrefix+"_ETCDLOCKKEY", "/lockkey"+testhelpers.Rand())
-				os.Setenv(envPrefix+"_ETCDADDRKEY", "/addrkey"+testhelpers.Rand())
-			},
-			func(envPrefix string) Adapter {
-				etcdCfg := &etcdadapter.EtcdConfig{}
-
-				err := envconfig.Process(envPrefix, etcdCfg)
-				Expect(err).NotTo(HaveOccurred())
-
-				return etcdadapter.NewEtcdAdapter(etcdCfg, Logger)
-			},
-		)
-	})
-
-	Describe("RedisAdapter", func() {
-		generateTests(
-			func(envPrefix string) {
-				os.Setenv(envPrefix+"_REDISURL", "redis://"+redistest.RedisAddr)
-				os.Setenv(envPrefix+"_REDISLOCKKEY", "lockkey"+testhelpers.Rand())
-				os.Setenv(envPrefix+"_REDISADDRKEY", "addrkey"+testhelpers.Rand())
-			},
-			func(envPrefix string) Adapter {
-				redisCfg := &redisadapter.RedisConfig{}
-
-				err := envconfig.Process(envPrefix, redisCfg)
-				Expect(err).NotTo(HaveOccurred())
-
-				return redisadapter.NewRedisAdapter(redisCfg, Logger)
-			},
-		)
-	})
+	for _, adapterTest := range GetAdapterTests() {
+		generateTests(adapterTest)
+	}
 })

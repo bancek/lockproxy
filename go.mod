@@ -3,7 +3,8 @@ module github.com/bancek/lockproxy
 go 1.12
 
 require (
-	github.com/bancek/tcpproxy v0.1.0
+	github.com/bancek/tcpproxy v0.1.2
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/go-redsync/redsync/v3 v3.0.0

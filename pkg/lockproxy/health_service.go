@@ -7,10 +7,10 @@ import (
 )
 
 type HealthService struct {
-	isLeader func() bool
+	isLeader func(ctx context.Context) bool
 }
 
-func NewHealthService(isLeader func() bool) *HealthService {
+func NewHealthService(isLeader func(ctx context.Context) bool) *HealthService {
 	return &HealthService{
 		isLeader: isLeader,
 	}
@@ -19,7 +19,7 @@ func NewHealthService(isLeader func() bool) *HealthService {
 func (s *HealthService) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
 	status := grpc_health_v1.HealthCheckResponse_SERVING
 
-	if req.Service == "lockproxyleader" && !s.isLeader() {
+	if req.Service == "lockproxyleader" && !s.isLeader(ctx) {
 		status = grpc_health_v1.HealthCheckResponse_NOT_SERVING
 	}
 

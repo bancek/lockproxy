@@ -71,6 +71,22 @@ type Config struct {
 	// (LOCKPROXY_CMDSHUTDOWNTIMEOUT)
 	CmdShutdownTimeout time.Duration `default:"10s"`
 
+	// PingRetryInitialInterval is the initial delay for retrying ping.
+	// (LOCKPROXY_PINGRETRYINITIALINTERVAL)
+	PingRetryInitialInterval time.Duration `default:"100ms"`
+
+	// PingRetryMaxElapsedTime is the max elapsed time for retrying ping.
+	// (LOCKPROXY_PINGRETRYMAXELAPSEDTIME)
+	PingRetryMaxElapsedTime time.Duration `default:"10s"`
+
+	// PingDelay is the delay between pings.
+	// (LOCKPROXY_PINGDELAY)
+	PingDelay time.Duration `default:"10s"`
+
+	// PingInitialDelay is the delay before the first ping.
+	// (LOCKPROXY_PINGINITIALDELAY)
+	PingInitialDelay time.Duration `default:"10s"`
+
 	// LogLevel is the log level.
 	// (LOCKPROXY_LOGLEVEL)
 	LogLevel string `default:"info"`

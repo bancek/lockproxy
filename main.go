@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
@@ -62,6 +65,8 @@ func main() {
 			logger.WithError(err).Fatal("Failed to load etcd config from env")
 		}
 
+		checkEnvConfig(cfg, etcdCfg, logger)
+
 		adapter = etcdadapter.NewEtcdAdapter(etcdCfg, logger)
 	} else if cfg.Adapter == "redis" {
 		redisCfg := &redisadapter.RedisConfig{}
@@ -70,6 +75,8 @@ func main() {
 		if err != nil {
 			logger.WithError(err).Fatal("Failed to load redis config from env")
 		}
+
+		checkEnvConfig(cfg, redisCfg, logger)
 
 		adapter = redisadapter.NewRedisAdapter(redisCfg, logger)
 	} else {
@@ -104,5 +111,49 @@ func main() {
 	if err != nil {
 		logger.WithError(err).Warn("Lock proxy shutdown")
 		os.Exit(2)
+	}
+}
+
+func checkEnvConfig(cfg *config.Config, adapterCfg interface{}, logger *logrus.Entry) {
+	adapterName := strings.ToUpper(cfg.Adapter)
+
+	prefix := "LOCKPROXY_"
+	adapterPrefix := prefix + adapterName
+
+	checkPrefix := strings.ToUpper(uuid.New().String())
+	adapterCheckPrefix := strings.ToUpper(uuid.New().String())
+
+	setKeys := []string{}
+
+	for _, env := range os.Environ() {
+		if !strings.HasPrefix(env, prefix) {
+			continue
+		}
+		keyVal := strings.SplitN(env, "=", 2)
+		key := keyVal[0]
+		val := ""
+		if len(keyVal) > 1 {
+			val = keyVal[1]
+		}
+		checkKey := checkPrefix + "_" + key
+		if strings.HasPrefix(key, adapterPrefix) {
+			checkKey = adapterCheckPrefix + "_" + key
+		}
+		_ = os.Setenv(checkKey, val)
+		setKeys = append(setKeys, checkKey)
+	}
+
+	defer func() {
+		for _, key := range setKeys {
+			_ = os.Unsetenv(key)
+		}
+	}()
+
+	if checkErr := envconfig.CheckDisallowed(checkPrefix+"_LOCKPROXY", cfg); checkErr != nil {
+		logger.WithError(errors.New(strings.ReplaceAll(checkErr.Error(), checkPrefix+"_", ""))).Warn("Config check error")
+	}
+
+	if checkErr := envconfig.CheckDisallowed(adapterCheckPrefix+"_LOCKPROXY", adapterCfg); checkErr != nil {
+		logger.WithError(errors.New(strings.ReplaceAll(checkErr.Error(), adapterCheckPrefix+"_", ""))).Warn("Config check error")
 	}
 }

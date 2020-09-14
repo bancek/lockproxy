@@ -57,28 +57,26 @@ func (a *RedisAdapter) GetLocker(onLocked func(ctx context.Context) error) (lock
 		a.redisPool,
 		a.config.RedisLockKey,
 		a.config.RedisLockTTL,
+		a.config.RedisLockRetryDelay,
+		a.config.RedisUnlockTimeout,
+		a.config.RedisRetryInitialInterval,
+		a.config.RedisRetryMaxElapsedTime,
 		onLocked,
 		a.logger,
 	), nil
 }
 
-func (a *RedisAdapter) GetAddrStore() (lockproxy.AddrStore, error) {
+func (a *RedisAdapter) GetRemoteAddrStore(localAddrStore lockproxy.LocalAddrStore) (lockproxy.RemoteAddrStore, error) {
 	if a.redisDialer == nil || a.redisPool == nil {
 		return nil, xerrors.Errorf("not initialized")
 	}
-	return NewAddrStore(a.redisDialer, a.redisPool, a.config.RedisAddrKey, a.logger), nil
-}
-
-func (a *RedisAdapter) GetPinger() (lockproxy.Pinger, error) {
-	if a.redisDialer == nil || a.redisPool == nil {
-		return nil, xerrors.Errorf("not initialized")
-	}
-	return NewPinger(
+	return NewAddrStore(
+		localAddrStore,
+		a.redisDialer,
 		a.redisPool,
 		a.config.RedisAddrKey,
-		a.config.RedisPingTimeout,
-		a.config.RedisPingDelay,
-		a.config.RedisPingInitialDelay,
+		a.config.RedisRetryInitialInterval,
+		a.config.RedisRetryMaxElapsedTime,
 		a.logger,
 	), nil
 }

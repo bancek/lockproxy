@@ -11,29 +11,29 @@ import (
 )
 
 type Locker struct {
-	etcdClient        *clientv3.Client
-	lockKey           string
-	lockTTL           int
-	etcdUnlockTimeout time.Duration
-	onLocked          func(ctx context.Context) error
-	logger            *logrus.Entry
+	etcdClient    *clientv3.Client
+	lockKey       string
+	lockTTL       int
+	unlockTimeout time.Duration
+	onLocked      func(ctx context.Context) error
+	logger        *logrus.Entry
 }
 
 func NewLocker(
 	etcdClient *clientv3.Client,
 	lockKey string,
 	lockTTL int,
-	etcdUnlockTimeout time.Duration,
+	unlockTimeout time.Duration,
 	onLocked func(ctx context.Context) error,
 	logger *logrus.Entry,
 ) *Locker {
 	return &Locker{
-		etcdClient:        etcdClient,
-		lockKey:           lockKey,
-		lockTTL:           lockTTL,
-		etcdUnlockTimeout: etcdUnlockTimeout,
-		onLocked:          onLocked,
-		logger:            logger,
+		etcdClient:    etcdClient,
+		lockKey:       lockKey,
+		lockTTL:       lockTTL,
+		unlockTimeout: unlockTimeout,
+		onLocked:      onLocked,
+		logger:        logger,
 	}
 }
 
@@ -61,7 +61,7 @@ func (l *Locker) Start(ctx context.Context) error {
 
 	// we cannot use ctx for Unlock because it might already be cancelled,
 	// but we should still limit it.
-	unlockCtx, unlockCtxCancel := context.WithTimeout(context.Background(), l.etcdUnlockTimeout)
+	unlockCtx, unlockCtxCancel := context.WithTimeout(context.Background(), l.unlockTimeout)
 	defer unlockCtxCancel()
 
 	unlockErr := m.Unlock(unlockCtx)
@@ -79,7 +79,7 @@ func (l *Locker) Start(ctx context.Context) error {
 	}
 
 	if unlockErr != nil {
-		return xerrors.Errorf("unlock failed: %w", err)
+		return xerrors.Errorf("unlock failed: %w", unlockErr)
 	}
 
 	return nil

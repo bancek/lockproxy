@@ -19,21 +19,22 @@ type LockProxy struct {
 	adapter Adapter
 	logger  *logrus.Entry
 
-	ctx            context.Context
-	cancel         func()
-	errGroup       *errgroup.Group
-	debugListener  net.Listener
-	healthListener net.Listener
-	proxyListener  net.Listener
-	pinger         Pinger
-	addrStore      AddrStore
-	proxyDirector  *ProxyDirector
-	commander      *Commander
-	locker         Locker
-	debugServer    *http.Server
-	healthService  *HealthService
-	healthServer   *grpc.Server
-	proxyServer    *grpc.Server
+	ctx             context.Context
+	cancel          func()
+	errGroup        *errgroup.Group
+	debugListener   net.Listener
+	healthListener  net.Listener
+	proxyListener   net.Listener
+	pinger          *Pinger
+	localAddrStore  LocalAddrStore
+	remoteAddrStore RemoteAddrStore
+	proxyDirector   *ProxyDirector
+	commander       *Commander
+	locker          Locker
+	debugServer     *http.Server
+	healthService   *HealthService
+	healthServer    *grpc.Server
+	proxyServer     *grpc.Server
 }
 
 func NewLockProxy(
@@ -84,17 +85,22 @@ func (p *LockProxy) Init(ctx context.Context) error {
 		return xerrors.Errorf("failed to init adapter: %w", err)
 	}
 
-	pinger, err := p.adapter.GetPinger()
-	if err != nil {
-		return xerrors.Errorf("failed to get pinger: %w", err)
-	}
-	p.pinger = pinger
+	p.localAddrStore = NewMemoryAddrStore(p.logger)
 
-	addrStore, err := p.adapter.GetAddrStore()
+	remoteAddrStore, err := p.adapter.GetRemoteAddrStore(p.localAddrStore)
 	if err != nil {
-		return xerrors.Errorf("failed to get addrStore: %w", err)
+		return xerrors.Errorf("failed to get remote addr store: %w", err)
 	}
-	p.addrStore = addrStore
+	p.remoteAddrStore = remoteAddrStore
+
+	p.pinger = NewPinger(
+		p.ping,
+		p.config.PingRetryInitialInterval,
+		p.config.PingRetryMaxElapsedTime,
+		p.config.PingDelay,
+		p.config.PingInitialDelay,
+		p.logger,
+	)
 
 	locker, err := p.adapter.GetLocker(p.onLocked)
 	if err != nil {
@@ -126,20 +132,24 @@ func (p *LockProxy) Init(ctx context.Context) error {
 	return nil
 }
 
-func (p *LockProxy) upstreamAddrProvider() (addr string, isLeader bool) {
-	addr = p.addrStore.Addr()
+func (p *LockProxy) upstreamAddrProvider(ctx context.Context) (addr string, isLeader bool) {
+	addr = p.remoteAddrStore.Addr(ctx)
 	isLeader = addr == p.config.UpstreamAddr
 	return addr, isLeader
 }
 
-func (p *LockProxy) isLeader() bool {
-	addr := p.addrStore.Addr()
-
+func (p *LockProxy) isLeader(ctx context.Context) bool {
+	addr := p.remoteAddrStore.Addr(ctx)
 	return addr == p.config.UpstreamAddr
 }
 
+func (p *LockProxy) ping(ctx context.Context) error {
+	_, err := p.remoteAddrStore.Refresh(ctx)
+	return err
+}
+
 func (p *LockProxy) onLocked(ctx context.Context) error {
-	err := p.addrStore.SetAddr(ctx, p.config.UpstreamAddr)
+	err := p.remoteAddrStore.SetAddr(ctx, p.config.UpstreamAddr)
 	if err != nil {
 		return xerrors.Errorf("failed to set addr: %w", err)
 	}
@@ -147,19 +157,29 @@ func (p *LockProxy) onLocked(ctx context.Context) error {
 	return p.commander.Start(ctx)
 }
 
-func (p *LockProxy) Spawn(f func(context.Context) error) {
+func (p *LockProxy) Spawn(name string, f func(context.Context) error) {
+	logger := p.logger.WithField("name", name)
+
 	p.errGroup.Go(func() error {
+		logger.Debug("Spawn start")
+
 		err := f(p.ctx)
 		if err != nil {
+			logger.WithError(err).Debug("Spawn done")
+
 			p.cancel()
+
 			return err
 		}
+
+		logger.Debug("Spawn done")
+
 		return nil
 	})
 }
 
 func (p *LockProxy) Start() error {
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("debugHTTPServer", func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.DebugListenAddr).Info("Starting debug HTTP server")
 
 		err := p.debugServer.Serve(p.debugListener)
@@ -169,55 +189,46 @@ func (p *LockProxy) Start() error {
 		return nil
 	})
 
-	watchCreated := make(chan struct{}, 1)
+	addrStoreStarted := make(chan struct{}, 1)
 
-	p.logger.Info("LockProxy starting watch")
+	p.logger.Info("LockProxy starting addr store")
 
-	p.Spawn(func(ctx context.Context) error {
-		err := p.addrStore.Watch(ctx, func() {
-			watchCreated <- struct{}{}
+	p.Spawn("remoteAddrStore", func(ctx context.Context) error {
+		err := p.remoteAddrStore.Start(ctx, func() {
+			addrStoreStarted <- struct{}{}
 		})
 		if err != nil {
-			p.logger.WithError(err).Info("LockProxy watch error")
+			p.logger.WithError(err).Info("LockProxy addr store error")
 			return err
 		}
 		return nil
 	})
 
-	p.logger.Info("LockProxy waiting for watch created")
-
 	select {
-	case <-watchCreated:
+	case <-addrStoreStarted:
 	case <-p.ctx.Done():
 		return p.ctx.Err()
 	}
 
-	p.logger.Info("LockProxy watch created")
+	p.logger.Info("LockProxy addr store started")
 
-	err := p.addrStore.Init(p.ctx)
-	if err != nil {
-		return xerrors.Errorf("failed to initialize addr store: %w", err)
-	}
-
-	p.logger.Info("LockProxy store initialized")
-
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("healthServer", func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.HealthListenAddr).Info("Starting health gRPC server")
 
 		return p.healthServer.Serve(p.healthListener)
 	})
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("proxyServer", func(ctx context.Context) error {
 		p.logger.WithField("listenAddr", p.config.ProxyListenAddr).Info("Starting proxy gRPC server")
 
 		return p.proxyServer.Serve(p.proxyListener)
 	})
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("locker", func(ctx context.Context) error {
 		return p.locker.Start(ctx)
 	})
 
-	p.Spawn(func(ctx context.Context) error {
+	p.Spawn("pinger", func(ctx context.Context) error {
 		return p.pinger.Start(ctx)
 	})
 
@@ -229,7 +240,7 @@ func (p *LockProxy) Start() error {
 	p.healthServer.GracefulStop()
 	_ = p.debugServer.Shutdown(context.Background())
 
-	err = p.errGroup.Wait()
+	err := p.errGroup.Wait()
 	if err != nil {
 		p.logger.WithError(err).Warn("Shutdown with error")
 		return err

@@ -17,6 +17,7 @@ import (
 var TestCtx context.Context
 var TestCtxTimeoutCancel func()
 var Logger *logrus.Entry
+var EnvPrefix string
 
 func TestLockproxy(t *testing.T) {
 	if !etcdtest.EtcdInitTesting(t) {
@@ -41,6 +42,8 @@ var _ = BeforeEach(func() {
 	redistest.RedisBeforeEach()
 
 	Logger = testhelpers.NewLoggerEntry()
+
+	EnvPrefix = testhelpers.GetEnvPrefix()
 })
 
 var _ = AfterEach(func() {

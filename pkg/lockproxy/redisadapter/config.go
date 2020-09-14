@@ -26,30 +26,35 @@ type RedisConfig struct {
 	// (LOCKPROXY_REDISIDLETIMEOUT)
 	RedisIdleTimeout time.Duration `default:"5m"`
 
-	// RedisLockTTL is the duration of the redis lock (in seconds). The lock will
+	// RedisLockTTL is the duration of the Redis lock (in seconds). The lock will
 	// be refreshed every RedisLockTTL seconds.
 	// (LOCKPROXY_REDISLOCKTTL)
 	RedisLockTTL int `default:"10"`
 
-	// RedisLockKey is the redis key used for redis lock.
+	// RedisLockTTL is the duration of the Redis lock (in seconds). The lock will
+	// be refreshed every RedisLockTTL seconds.
+	// (LOCKPROXY_REDISLOCKTTL)
+	RedisLockRetryDelay time.Duration `default:"100ms"`
+
+	// RedisUnlockTimeout is the max duration for waiting etcd to unlock after the
+	// Cmd is stopped.
+	// (LOCKPROXY_REDISUNLOCKTIMEOUT)
+	RedisUnlockTimeout time.Duration `default:"10s"`
+
+	// RedisLockKey is the Redis key used for redis lock.
 	// (LOCKPROXY_REDISLOCKKEY)
 	RedisLockKey string `required:"true"`
 
-	// RedisAddrKey is the redis key used to store the address of the current
+	// RedisAddrKey is the Redis key used to store the address of the current
 	// leader.
 	// (LOCKPROXY_REDISADDRKEY)
 	RedisAddrKey string `required:"true"`
 
-	// RedisPingTimeout is the timeout after which the ping is deemed failed and the
-	// process will exit.
-	// (LOCKPROXY_REDISPINGTIMEOUT)
-	RedisPingTimeout time.Duration `default:"10s"`
+	// RedisRetryInitialInterval is the initial delay for retrying.
+	// (LOCKPROXY_REDISRETRYINITIALINTERVAL)
+	RedisRetryInitialInterval time.Duration `default:"100ms"`
 
-	// RedisPingDelay is the delay between pings.
-	// (LOCKPROXY_REDISPINGDELAY)
-	RedisPingDelay time.Duration `default:"10s"`
-
-	// RedisPingInitialDelay is the delay before the first ping.
-	// (LOCKPROXY_REDISPINGINITIALDELAY)
-	RedisPingInitialDelay time.Duration `default:"10s"`
+	// RedisRetryMaxElapsedTime is the max elapsed time for retrying.
+	// (LOCKPROXY_REDISRETRYMAXELAPSEDTIME)
+	RedisRetryMaxElapsedTime time.Duration `default:"10s"`
 }

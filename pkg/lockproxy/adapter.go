@@ -6,21 +6,21 @@ type Locker interface {
 	Start(ctx context.Context) error
 }
 
-type AddrStore interface {
-	Init(ctx context.Context) error
-	Addr() string
-	SetAddr(ctx context.Context, addr string) error
-	Watch(ctx context.Context, onCreated func()) error
+type LocalAddrStore interface {
+	Addr(ctx context.Context) string
+	SetAddr(ctx context.Context, addr string)
 }
 
-type Pinger interface {
-	Start(ctx context.Context) error
+type RemoteAddrStore interface {
+	Addr(ctx context.Context) string
+	Refresh(ctx context.Context) (addr string, err error)
+	Start(ctx context.Context, onInit func()) error
+	SetAddr(ctx context.Context, addr string) error
 }
 
 type Adapter interface {
 	Init(ctx context.Context) error
 	GetLocker(onLocked func(ctx context.Context) error) (Locker, error)
-	GetAddrStore() (AddrStore, error)
-	GetPinger() (Pinger, error)
+	GetRemoteAddrStore(addrStore LocalAddrStore) (RemoteAddrStore, error)
 	Close() error
 }
