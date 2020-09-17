@@ -38,13 +38,14 @@ var _ = Describe("ProxyDirector", func() {
 	}
 
 	createDirector := func(
+		ctx context.Context,
 		upstreamAddrProvider UpstreamAddrProvider,
 		healthAddr string,
 		grpcMaxCallRecvMsgSize int,
 		grpcMaxCallSendMsgSize int,
 		abortTimeout time.Duration,
 		proxyHealthFollowerInternal bool,
-	) (grpc_health_v1.HealthClient, func()) {
+	) (string, func()) {
 		grpcDialTransportSecurity := grpc.WithInsecure()
 
 		proxyListener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -53,7 +54,7 @@ var _ = Describe("ProxyDirector", func() {
 		proxyAddr := proxyListener.Addr().String()
 
 		proxyDirector := NewProxyDirector(
-			TestCtx,
+			ctx,
 			upstreamAddrProvider,
 			healthAddr,
 			grpcDialTransportSecurity,
@@ -68,6 +69,30 @@ var _ = Describe("ProxyDirector", func() {
 			_ = proxyServer.Serve(proxyListener)
 		}()
 
+		return proxyAddr, func() {
+			proxyServer.Stop()
+			proxyListener.Close()
+		}
+	}
+
+	createClient := func(
+		upstreamAddrProvider UpstreamAddrProvider,
+		healthAddr string,
+		grpcMaxCallRecvMsgSize int,
+		grpcMaxCallSendMsgSize int,
+		abortTimeout time.Duration,
+		proxyHealthFollowerInternal bool,
+	) (grpc_health_v1.HealthClient, func()) {
+		proxyAddr, directorDone := createDirector(
+			TestCtx,
+			upstreamAddrProvider,
+			healthAddr,
+			grpcMaxCallRecvMsgSize,
+			grpcMaxCallSendMsgSize,
+			abortTimeout,
+			proxyHealthFollowerInternal,
+		)
+
 		conn, err := grpc.DialContext(TestCtx, proxyAddr, grpc.WithInsecure())
 		Expect(err).NotTo(HaveOccurred())
 
@@ -75,8 +100,7 @@ var _ = Describe("ProxyDirector", func() {
 
 		return healthClient, func() {
 			conn.Close()
-			proxyServer.Stop()
-			proxyListener.Close()
+			directorDone()
 		}
 	}
 
@@ -88,7 +112,7 @@ var _ = Describe("ProxyDirector", func() {
 		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr1, true
 		}
-		healthClient, stop := createDirector(
+		healthClient, stop := createClient(
 			upstreamAddrProvider,
 			healthAddr2,
 			4*1024*1024,
@@ -114,7 +138,7 @@ var _ = Describe("ProxyDirector", func() {
 		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr1, false
 		}
-		healthClient, stop := createDirector(
+		healthClient, stop := createClient(
 			upstreamAddrProvider,
 			healthAddr2,
 			4*1024*1024,
@@ -140,7 +164,7 @@ var _ = Describe("ProxyDirector", func() {
 		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr1, false
 		}
-		healthClient, stop := createDirector(
+		healthClient, stop := createClient(
 			upstreamAddrProvider,
 			healthAddr2,
 			4*1024*1024,
@@ -164,7 +188,7 @@ var _ = Describe("ProxyDirector", func() {
 		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr, true
 		}
-		healthClient, stop := createDirector(
+		healthClient, stop := createClient(
 			upstreamAddrProvider,
 			healthAddr,
 			1,
@@ -187,7 +211,7 @@ var _ = Describe("ProxyDirector", func() {
 		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
 			return healthAddr, true
 		}
-		healthClient, stop := createDirector(
+		healthClient, stop := createClient(
 			upstreamAddrProvider,
 			healthAddr,
 			4*1024*1024,
@@ -204,6 +228,38 @@ var _ = Describe("ProxyDirector", func() {
 		Expect(err.Error()).To(ContainSubstring("trying to send message larger than max"))
 
 		healthServiceMock.AssertNumberOfCalls(GinkgoT(), "Check", 0)
+	})
+
+	It("should return an error if director ctx is canceled", func() {
+		healthAddr1, _, healthStop1 := createHealthServer()
+		defer healthStop1()
+		upstreamAddrProvider := func(ctx context.Context) (addr string, isLeader bool) {
+			return healthAddr1, true
+		}
+		directorCtx, directorCtxCancel := context.WithCancel(TestCtx)
+		defer directorCtxCancel()
+		proxyAddr, directorDone := createDirector(
+			directorCtx,
+			upstreamAddrProvider,
+			healthAddr1,
+			4*1024*1024,
+			4*1024*1024,
+			10*time.Second,
+			true,
+		)
+		defer directorDone()
+
+		conn, err := grpc.DialContext(TestCtx, proxyAddr, grpc.WithInsecure())
+		Expect(err).NotTo(HaveOccurred())
+		defer conn.Close()
+
+		healthClient := grpc_health_v1.NewHealthClient(conn)
+
+		directorCtxCancel()
+
+		_, err = healthClient.Check(TestCtx, &grpc_health_v1.HealthCheckRequest{})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("context canceled"))
 	})
 })
 

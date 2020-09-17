@@ -129,7 +129,7 @@ func (d *ProxyDirector) Director(ctx context.Context, fullMethodName string) (co
 			"addr":          addr,
 			logrus.ErrorKey: err,
 		}).Warn("ProxyDirector proxy dial error")
-		return outCtx, nil, nil
+		return nil, nil, err
 	}
 
 	return outCtx, clientConn, nil
