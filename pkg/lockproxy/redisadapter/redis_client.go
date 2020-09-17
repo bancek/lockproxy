@@ -14,6 +14,7 @@ func RedisDial(config *RedisConfig) (redis.Conn, error) {
 		config.RedisURL,
 		redis.DialConnectTimeout(config.RedisDialTimeout),
 		redis.DialKeepAlive(config.RedisDialKeepAliveTime),
+		redis.DialClientName(config.RedisDialClientName),
 	)
 	if err != nil {
 		return nil, err

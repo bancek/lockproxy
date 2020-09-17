@@ -17,6 +17,11 @@ type RedisConfig struct {
 	// (LOCKPROXY_REDISDIALKEEPALIVETIME)
 	RedisDialKeepAliveTime time.Duration `default:"10s"`
 
+	// RedisDialClientName is the name of the Redis client (useful for debugging
+	// with Redis CLIENT LIST command).
+	// (LOCKPROXY_REDISDIALCLIENTNAME)
+	RedisDialClientName string `default:"lockproxy"`
+
 	// RedisMaxIdle is the max amount of idle connections to Redis.
 	// (LOCKPROXY_REDISMAXIDLE)
 	RedisMaxIdle int `default:"10"`
