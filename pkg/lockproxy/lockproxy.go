@@ -165,7 +165,7 @@ func (p *LockProxy) Spawn(name string, f func(context.Context) error) {
 
 		err := f(p.ctx)
 		if err != nil {
-			logger.WithError(err).Debug("Spawn done")
+			logger.WithError(err).Info("Spawn done")
 
 			p.cancel()
 

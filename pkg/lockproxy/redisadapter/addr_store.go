@@ -90,7 +90,7 @@ func (s *AddrStore) init(ctx context.Context) error {
 
 	addr, err := s.refresh(ctx)
 	if err != nil {
-		return err
+		return xerrors.Errorf("refresh failed: %w", err)
 	}
 
 	s.logger.WithFields(logrus.Fields{
@@ -108,12 +108,16 @@ func (s *AddrStore) Start(ctx context.Context, onStarted func()) error {
 	for {
 		err := backoff.RetryNotify(
 			func() error {
-				return s.start(ctx, func() {
+				err := s.start(ctx, func() {
 					if !onStartedCalled {
 						onStartedCalled = true
 						onStarted()
 					}
 				})
+				if err != nil {
+					return xerrors.Errorf("failed to start addr store: %w", err)
+				}
+				return nil
 			},
 			backoff.WithContext(lockproxy.GetExponentialBackOff(s.retryInitialInterval, s.retryMaxElapsedTime), ctx),
 			func(err error, next time.Duration) {
@@ -211,7 +215,11 @@ func (s *AddrStore) SetAddr(ctx context.Context, addr string) error {
 
 	return backoff.RetryNotify(
 		func() error {
-			return s.setAddr(ctx, addr)
+			err := s.setAddr(ctx, addr)
+			if err != nil {
+				return xerrors.Errorf("failed to set addr: %w", err)
+			}
+			return nil
 		},
 		backoff.WithContext(lockproxy.GetExponentialBackOff(s.retryInitialInterval, s.retryMaxElapsedTime), ctx),
 		func(err error, next time.Duration) {
