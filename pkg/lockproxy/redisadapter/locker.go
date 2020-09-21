@@ -145,15 +145,20 @@ func (l *Locker) extendLoop(ctx context.Context, cancel func(), extendErrChan ch
 		case <-timer.C:
 			extended, err := l.mutexExtend(ctx)
 			if err != nil {
-				extendErrChan <- xerrors.Errorf("failed to extend the lock: %w", err)
+				err = xerrors.Errorf("failed to extend the lock: %w", err)
+				l.logger.WithError(err).Warn("Locker extend loop mutex extend failed")
+				extendErrChan <- err
 				return
 			}
 			if !extended {
-				extendErrChan <- xerrors.Errorf("lock not extended")
+				err = xerrors.Errorf("lock not extended")
+				l.logger.WithError(err).Warn("Locker ectend loop mutex not extended")
+				extendErrChan <- err
 				return
 			}
 
 		case <-ctx.Done():
+			l.logger.WithError(ctx.Err()).Info("Locker extend loop done")
 			timer.Stop()
 
 			return
