@@ -93,7 +93,8 @@ func main() {
 
 	go func() {
 		select {
-		case <-interrupt:
+		case signal := <-interrupt:
+			logger.WithField("signal", signal.String()).Warn("Received signal, stopping application")
 			cancel()
 		case <-ctx.Done():
 		}
