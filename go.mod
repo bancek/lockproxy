@@ -30,4 +30,4 @@ require (
 
 replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
 
-replace github.com/go-redsync/redsync/v3 => github.com/bancek/redsync/v3 v3.0.1
+replace github.com/go-redsync/redsync/v3 => github.com/bancek/redsync/v3 v3.0.2

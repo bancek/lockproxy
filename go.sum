@@ -5,6 +5,8 @@ github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuy
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/bancek/redsync/v3 v3.0.1 h1:dMFZrjJMYjV/iVZ2UKb8OIf6FafVP4/fWWmVVuWZGvA=
 github.com/bancek/redsync/v3 v3.0.1/go.mod h1:uqGNyQTiDcgB0hp0ytmuwyErGBYkU6YVSXrIsSIEedg=
+github.com/bancek/redsync/v3 v3.0.2 h1:dC6tBgsLGZr0OBT1gV91DjJx0pxAZxhcBB+m+Feaoe0=
+github.com/bancek/redsync/v3 v3.0.2/go.mod h1:uqGNyQTiDcgB0hp0ytmuwyErGBYkU6YVSXrIsSIEedg=
 github.com/bancek/tcpproxy v0.1.2 h1:lGjuqRdveXydvGcYgID28pV0Ul/crSWcQ4BzpmhzR10=
 github.com/bancek/tcpproxy v0.1.2/go.mod h1:VOPXvZWVlZ5S3I/xMCIyPF5ynEntvZI3eklZZL6y3Rk=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
